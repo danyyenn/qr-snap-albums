@@ -216,6 +216,7 @@ export type Database = {
       get_event_by_upload_code: {
         Args: { p_upload_code: string }
         Returns: {
+          allow_guest_view: boolean
           description: string
           event_date: string
           id: string
