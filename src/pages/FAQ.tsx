@@ -14,8 +14,8 @@ const FAQ = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>FAQ - Frequently Asked Questions | FlashNShare</title>
-        <meta name="description" content="Get answers to common questions about FlashNShare, QR code photo sharing, event management, and more." />
+        <title>FAQ - Frequently Asked Questions | Flash N Share</title>
+        <meta name="description" content="Get answers to common questions about Flash N Share, QR code photo sharing, event management, and more." />
       </Helmet>
       
       <Header />
@@ -34,17 +34,17 @@ const FAQ = () => {
               Frequently Asked Questions
             </h1>
             <p className="text-lg text-muted-foreground">
-              Everything you need to know about FlashNShare
+              Everything you need to know about Flash N Share
             </p>
           </section>
 
           <Accordion type="single" collapsible className="w-full space-y-4">
             <AccordionItem value="item-1" className="border rounded-lg px-6">
               <AccordionTrigger className="text-left">
-                What is FlashNShare?
+                What is Flash N Share?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                FlashNShare is a QR-powered photo-sharing platform designed for events. It allows event hosts to create 
+                Flash N Share is a QR-powered photo-sharing platform designed for events. It allows event hosts to create 
                 a unique QR code that guests can scan to instantly upload photos from their phones. All photos are collected 
                 in one organized gallery that you can manage and download.
               </AccordionContent>
@@ -56,7 +56,7 @@ const FAQ = () => {
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
                 When you purchase invitations from our partner Etsy shops, you receive a redemption code that gives you 
-                free access to FlashNShare. Simply create an account, enter your code, and you'll receive one free event 
+                free access to Flash N Share. Simply create an account, enter your code, and you'll receive one free event 
                 credit with up to 1,000 photos and 3 months of storage.
               </AccordionContent>
             </AccordionItem>
@@ -66,7 +66,7 @@ const FAQ = () => {
                 Do guests need to download an app?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                No! That's the beauty of FlashNShare. Guests simply scan the QR code with their phone's camera, 
+                No! That's the beauty of Flash N Share. Guests simply scan the QR code with their phone's camera, 
                 which opens a web page where they can instantly upload photos. No app download required, works on any smartphone.
               </AccordionContent>
             </AccordionItem>
@@ -157,22 +157,22 @@ const FAQ = () => {
 
             <AccordionItem value="item-12" className="border rounded-lg px-6">
               <AccordionTrigger className="text-left">
-                Can I use FlashNShare without an Etsy purchase?
+                Can I use Flash N Share without an Etsy purchase?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                Currently, FlashNShare is designed to complement Etsy invitation purchases. If you're interested in using 
+                Currently, Flash N Share is designed to complement Etsy invitation purchases. If you're interested in using 
                 our service independently, please contact us to discuss options.
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-13" className="border rounded-lg px-6">
               <AccordionTrigger className="text-left">
-                What types of events is FlashNShare good for?
+                What types of events is Flash N Share good for?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                FlashNShare works great for any event where you want to collect photos: weddings, birthdays, anniversaries, 
+                Flash N Share works great for any event where you want to collect photos: weddings, birthdays, anniversaries, 
                 graduations, baby showers, corporate events, reunions, parties, conferences, and more. If there are people 
-                taking photos, FlashNShare can help you collect them.
+                taking photos, Flash N Share can help you collect them.
               </AccordionContent>
             </AccordionItem>
 
@@ -202,7 +202,7 @@ const FAQ = () => {
                 Is there customer support if I need help?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                Yes! We're here to help. You can reach us at support@flashnshare.com for any questions, technical issues, 
+                Yes! We're here to help. You can reach us at support@flashnshare.app for any questions, technical issues, 
                 or assistance with your events.
               </AccordionContent>
             </AccordionItem>
@@ -220,7 +220,7 @@ const FAQ = () => {
                 </Button>
               </Link>
               <Button variant="outline" size="lg" asChild>
-                <a href="mailto:support@flashnshare.com">
+                <a href="mailto:support@flashnshare.app">
                   Contact Support
                 </a>
               </Button>

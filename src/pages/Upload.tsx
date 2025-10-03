@@ -258,7 +258,7 @@ const Upload = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{event?.name ? `Upload to ${event.name}` : "Upload Photos"} - FlashNShare</title>
+        <title>{event?.name ? `Upload to ${event.name}` : "Upload Photos"} - Flash N Share</title>
         <meta name="description" content={`Upload your photos to ${event?.name || "this event"}. Share your party and event photos instantly with the host.`} />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>

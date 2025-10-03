@@ -9,8 +9,8 @@ const About = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>About FlashNShare - Event Photo Sharing Made Simple</title>
-        <meta name="description" content="Learn about FlashNShare, the QR-powered photo sharing platform that helps event hosts collect and manage photos from their celebrations." />
+        <title>About Flash N Share - Event Photo Sharing Made Simple</title>
+        <meta name="description" content="Learn about Flash N Share, the QR-powered photo sharing platform that helps event hosts collect and manage photos from their celebrations." />
       </Helmet>
       
       <Header />
@@ -27,7 +27,7 @@ const About = () => {
           <section className="text-center space-y-4">
             <h1 className="text-4xl md:text-6xl font-bold">
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                About FlashNShare
+                About Flash N Share
               </span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -39,12 +39,12 @@ const About = () => {
             <h2 className="text-3xl font-bold">Our Story</h2>
             <div className="prose prose-slate dark:prose-invert max-w-none">
               <p>
-                FlashNShare was born from a simple frustration: collecting photos from events shouldn't be complicated. 
+                Flash N Share was born from a simple frustration: collecting photos from events shouldn't be complicated. 
                 Whether it's a wedding, birthday party, corporate event, or family reunion, everyone takes photos—but 
                 getting them all in one place? That's always been the challenge.
               </p>
               <p>
-                We created FlashNShare to solve this problem. No more chasing down guests for photos, no more scattered 
+                We created Flash N Share to solve this problem. No more chasing down guests for photos, no more scattered 
                 images across different platforms, no more complicated apps that nobody wants to download.
               </p>
               <p>
@@ -61,7 +61,7 @@ const About = () => {
                 </div>
                 <h3 className="text-xl font-bold">Built for Hosts</h3>
                 <p className="text-muted-foreground">
-                  We understand the challenges of planning events. FlashNShare is designed to make photo collection 
+                  We understand the challenges of planning events. Flash N Share is designed to make photo collection 
                   the easiest part of your celebration, so you can focus on what matters: enjoying the moment.
                 </p>
               </CardContent>
@@ -100,7 +100,7 @@ const About = () => {
                 </div>
                 <h3 className="text-xl font-bold">Simple & Beautiful</h3>
                 <p className="text-muted-foreground">
-                  We believe great tools should be easy to use and pleasant to look at. FlashNShare is designed 
+                  We believe great tools should be easy to use and pleasant to look at. Flash N Share is designed 
                   with care to provide a delightful experience for both hosts and guests.
                 </p>
               </CardContent>
@@ -161,14 +161,14 @@ const About = () => {
           </section>
 
           <section className="space-y-6">
-            <h2 className="text-3xl font-bold">Why FlashNShare?</h2>
+            <h2 className="text-3xl font-bold">Why Flash N Share?</h2>
             <div className="prose prose-slate dark:prose-invert max-w-none">
               <p>
                 We're passionate about helping people preserve their precious moments. Whether it's a milestone birthday, 
                 a dream wedding, or a corporate celebration, every event deserves to have its photos collected and cherished.
               </p>
               <p>
-                FlashNShare bridges the gap between Etsy invitation shops and modern photo sharing technology. 
+                Flash N Share bridges the gap between Etsy invitation shops and modern photo sharing technology. 
                 When you purchase invitations from our partner shops on Etsy, you get free access to our platform—making 
                 your event planning even more seamless.
               </p>
@@ -178,7 +178,7 @@ const About = () => {
           <section className="bg-gradient-primary text-primary-foreground rounded-2xl p-8 text-center space-y-4">
             <h2 className="text-3xl font-bold">Ready to Get Started?</h2>
             <p className="text-lg opacity-90 max-w-2xl mx-auto">
-              Join thousands of hosts who trust FlashNShare for their events. 
+              Join thousands of hosts who trust Flash N Share for their events. 
               Create your first event free with any Etsy invitation purchase.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">

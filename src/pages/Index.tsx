@@ -9,7 +9,7 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <Helmet>
-        <title>FlashNShare - QR-Powered Party Photo Albums | Event Photo Sharing</title>
+        <title>Flash N Share - QR-Powered Party Photo Albums | Event Photo Sharing</title>
         <meta name="description" content="Free photo-sharing app for events. Create QR codes for your party, guests upload photos instantly. Manage galleries, downloads, and memories with ease." />
         <meta name="keywords" content="event photos, party photos, QR code photo sharing, photo album, wedding photos, birthday photos, photo sharing app" />
         <link rel="canonical" href={window.location.href} />
@@ -30,7 +30,7 @@ const Index = () => {
           <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
             <h1 className="text-5xl md:text-7xl font-bold leading-tight">
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                FlashNShare
+                Flash N Share
               </span>
               <br />
               <span className="text-foreground">Memories Made Simple</span>
@@ -163,7 +163,7 @@ const Index = () => {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-6">
             <div>
-              <h3 className="font-bold mb-3">FlashNShare</h3>
+              <h3 className="font-bold mb-3">Flash N Share</h3>
               <p className="text-sm text-muted-foreground">
                 QR-powered photo sharing for events. Made with ♥ for party hosts.
               </p>
@@ -213,7 +213,7 @@ const Index = () => {
               <ul className="space-y-2 text-sm">
                 <li>
                   <a 
-                    href="mailto:support@flashnshare.com" 
+                    href="mailto:support@flashnshare.app"
                     className="text-muted-foreground hover:text-primary transition-colors"
                   >
                     Contact Us
@@ -229,7 +229,7 @@ const Index = () => {
           </div>
           <div className="border-t pt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              &copy; 2025 FlashNShare. All rights reserved.
+              &copy; 2025 Flash N Share. All rights reserved.
             </p>
           </div>
         </div>

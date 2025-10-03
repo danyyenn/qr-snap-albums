@@ -8,8 +8,8 @@ const TermsOfService = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Terms of Service - FlashNShare</title>
-        <meta name="description" content="FlashNShare terms of service. Read our terms and conditions for using our event photo-sharing platform." />
+        <title>Terms of Service - Flash N Share</title>
+        <meta name="description" content="Flash N Share terms of service. Read our terms and conditions for using our event photo-sharing platform." />
       </Helmet>
       
       <Header />
@@ -29,7 +29,7 @@ const TermsOfService = () => {
           <section className="mt-8">
             <h2>1. Acceptance of Terms</h2>
             <p>
-              By accessing and using FlashNShare, you agree to be bound by these Terms of Service. 
+              By accessing and using Flash N Share, you agree to be bound by these Terms of Service. 
               If you do not agree to these terms, please do not use our service.
             </p>
           </section>
@@ -37,7 +37,7 @@ const TermsOfService = () => {
           <section className="mt-8">
             <h2>2. Service Description</h2>
             <p>
-              FlashNShare is a photo-sharing platform that allows event hosts to create QR-coded photo galleries 
+              Flash N Share is a photo-sharing platform that allows event hosts to create QR-coded photo galleries 
               where guests can upload and share photos from events. The service includes:
             </p>
             <ul>
@@ -50,7 +50,7 @@ const TermsOfService = () => {
 
           <section className="mt-8">
             <h2>3. Account Registration</h2>
-            <p>To use FlashNShare, you must:</p>
+            <p>To use Flash N Share, you must:</p>
             <ul>
               <li>Be at least 13 years of age</li>
               <li>Provide accurate and complete registration information</li>
@@ -83,7 +83,7 @@ const TermsOfService = () => {
             <h2>5. Content Ownership and Licenses</h2>
             <h3>Your Content</h3>
             <p>
-              You retain all ownership rights to photos you upload. By uploading content, you grant FlashNShare a limited, 
+              You retain all ownership rights to photos you upload. By uploading content, you grant Flash N Share a limited, 
               non-exclusive license to store, display, and transmit your content solely for the purpose of providing our service.
             </p>
             
@@ -126,7 +126,7 @@ const TermsOfService = () => {
           <section className="mt-8">
             <h2>9. Data and Privacy</h2>
             <p>
-              Your use of FlashNShare is subject to our Privacy Policy. We take data security seriously and implement 
+              Your use of Flash N Share is subject to our Privacy Policy. We take data security seriously and implement 
               industry-standard measures to protect your information.
             </p>
           </section>
@@ -155,7 +155,7 @@ const TermsOfService = () => {
           <section className="mt-8">
             <h2>12. Limitation of Liability</h2>
             <p>
-              FlashNShare is provided "as is" without warranties of any kind. We are not liable for:
+              Flash N Share is provided "as is" without warranties of any kind. We are not liable for:
             </p>
             <ul>
               <li>Loss of photos due to technical failures or user error</li>
@@ -171,7 +171,7 @@ const TermsOfService = () => {
           <section className="mt-8">
             <h2>13. Indemnification</h2>
             <p>
-              You agree to indemnify and hold FlashNShare harmless from claims arising from your use of the service, 
+              You agree to indemnify and hold Flash N Share harmless from claims arising from your use of the service, 
               your content, or your violation of these terms.
             </p>
           </section>
@@ -197,7 +197,7 @@ const TermsOfService = () => {
               For questions about these terms, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> support@flashnshare.com
+              <strong>Email:</strong> support@flashnshare.app
             </p>
           </section>
         </article>

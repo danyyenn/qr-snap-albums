@@ -113,7 +113,7 @@ const CreateEvent = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Create New Event - FlashNShare</title>
+        <title>Create New Event - Flash N Share</title>
         <meta name="description" content="Set up a new event with QR code photo sharing. Get a unique upload code for guests to share photos instantly." />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>

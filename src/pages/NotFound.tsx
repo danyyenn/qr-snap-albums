@@ -12,8 +12,8 @@ const NotFound = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <Helmet>
-        <title>404 - Page Not Found | FlashNShare</title>
-        <meta name="description" content="The page you're looking for doesn't exist. Return to FlashNShare to create and manage your event photo galleries." />
+        <title>404 - Page Not Found | Flash N Share</title>
+        <meta name="description" content="The page you're looking for doesn't exist. Return to Flash N Share to create and manage your event photo galleries." />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="text-center">

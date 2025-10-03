@@ -153,15 +153,15 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Helmet>
-        <title>Login & Sign Up - FlashNShare Event Photo Sharing</title>
-        <meta name="description" content="Sign in to FlashNShare to create events, manage photo galleries, and share QR codes with guests. Free account with Etsy purchase." />
+        <title>Login & Sign Up - Flash N Share Event Photo Sharing</title>
+        <meta name="description" content="Sign in to Flash N Share to create events, manage photo galleries, and share QR codes with guests. Free account with Etsy purchase." />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <Header />
       <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/30 to-background">
         <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">FlashNShare</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Flash N Share</CardTitle>
           <CardDescription className="text-center">
             Sign in to manage your event photos
           </CardDescription>

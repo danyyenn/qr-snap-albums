@@ -8,8 +8,8 @@ const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Privacy Policy - FlashNShare</title>
-        <meta name="description" content="FlashNShare privacy policy. Learn how we protect and handle your event photos and personal information." />
+        <title>Privacy Policy - Flash N Share</title>
+        <meta name="description" content="Flash N Share privacy policy. Learn how we protect and handle your event photos and personal information." />
       </Helmet>
       
       <Header />
@@ -29,7 +29,7 @@ const PrivacyPolicy = () => {
           <section className="mt-8">
             <h2>1. Introduction</h2>
             <p>
-              Welcome to FlashNShare. We respect your privacy and are committed to protecting your personal data. 
+              Welcome to Flash N Share. We respect your privacy and are committed to protecting your personal data. 
               This privacy policy explains how we collect, use, and safeguard your information when you use our photo-sharing service.
             </p>
           </section>
@@ -128,7 +128,7 @@ const PrivacyPolicy = () => {
             <h2>9. Changes to This Policy</h2>
             <p>
               We may update this privacy policy from time to time. We will notify you of significant changes via email or through our service. 
-              Continued use of FlashNShare after changes constitutes acceptance of the updated policy.
+              Continued use of Flash N Share after changes constitutes acceptance of the updated policy.
             </p>
           </section>
 
@@ -138,7 +138,7 @@ const PrivacyPolicy = () => {
               If you have questions about this privacy policy or your data, please contact us at:
             </p>
             <p>
-              <strong>Email:</strong> privacy@flashnshare.com
+              <strong>Email:</strong> privacy@flashnshare.app
             </p>
           </section>
         </article>

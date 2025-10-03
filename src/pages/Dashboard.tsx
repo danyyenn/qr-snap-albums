@@ -146,8 +146,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>My Events Dashboard - FlashNShare</title>
-        <meta name="description" content="Manage your event photo galleries, view uploads, and download photos from your FlashNShare events." />
+        <title>My Events Dashboard - Flash N Share</title>
+        <meta name="description" content="Manage your event photo galleries, view uploads, and download photos from your Flash N Share events." />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <Header />

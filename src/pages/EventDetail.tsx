@@ -437,7 +437,7 @@ const EventDetail = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{event?.name ? `${event.name} - Event Photos` : "Event Photos"} - FlashNShare</title>
+        <title>{event?.name ? `${event.name} - Event Photos` : "Event Photos"} - Flash N Share</title>
         <meta name="description" content={`View and manage photos for ${event?.name || "your event"}. Download QR code, share upload link with guests, and manage your event gallery.`} />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
