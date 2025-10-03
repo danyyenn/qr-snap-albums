@@ -141,7 +141,7 @@ const EventDetail = () => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     
-    // Set a fixed size for better mobile compatibility
+    // Set a fixed size for better quality
     const size = 1000;
     canvas.width = size;
     canvas.height = size;
@@ -158,31 +158,98 @@ const EventDetail = () => {
       // Draw the QR code
       ctx.drawImage(img, 0, 0, size, size);
       
-      // Convert to blob and download
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `${event?.name}-qr-code.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-          
-          toast({
-            title: "QR Code Downloaded",
-            description: "QR code saved to your device",
-          });
+      // Get the data URL
+      const dataUrl = canvas.toDataURL('image/png', 1.0);
+      
+      // Detect if mobile device (iOS Safari doesn't support download attribute)
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // On mobile, open in new window where user can long-press to save
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>QR Code - ${event?.name || 'Event'}</title>
+                <style>
+                  body {
+                    margin: 0;
+                    padding: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    background: #f5f5f5;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  }
+                  img {
+                    max-width: 100%;
+                    height: auto;
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                  }
+                  .instructions {
+                    margin-top: 20px;
+                    padding: 15px;
+                    background: white;
+                    border-radius: 8px;
+                    text-align: center;
+                    max-width: 400px;
+                  }
+                  h3 {
+                    margin: 0 0 10px 0;
+                    font-size: 18px;
+                    color: #333;
+                  }
+                  p {
+                    margin: 0;
+                    font-size: 14px;
+                    color: #666;
+                  }
+                </style>
+              </head>
+              <body>
+                <img src="${dataUrl}" alt="QR Code">
+                <div class="instructions">
+                  <h3>📱 To Save This QR Code:</h3>
+                  <p>Long-press on the image above and select "Save Image" or "Add to Photos"</p>
+                </div>
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
         }
-      }, 'image/png', 1.0);
+        toast({
+          title: "QR Code Opened",
+          description: "Long-press the image to save it",
+        });
+      } else {
+        // Desktop: use download attribute
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = `${event?.name}-qr-code.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "QR Code Downloaded",
+          description: "QR code saved to your device",
+        });
+      }
     };
 
     img.onerror = () => {
       toast({
         variant: "destructive",
-        title: "Download Failed",
-        description: "Could not download QR code. Try again.",
+        title: "Error",
+        description: "Could not generate QR code. Please try again.",
       });
     };
 
