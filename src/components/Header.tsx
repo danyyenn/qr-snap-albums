@@ -1,5 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 const QRHeartIcon = () => (
   <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
@@ -27,6 +30,26 @@ const QRHeartIcon = () => (
 );
 
 const Header = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -38,16 +61,24 @@ const Header = () => {
         </Link>
         
         <div className="flex items-center gap-3">
-          <Link to="/auth">
-            <Button variant="ghost" size="sm">
-              Login
+          {user ? (
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Logout
             </Button>
-          </Link>
-          <Link to="/auth?mode=signup">
-            <Button variant="hero" size="sm">
-              Sign Up
-            </Button>
-          </Link>
+          ) : (
+            <>
+              <Link to="/auth">
+                <Button variant="ghost" size="sm">
+                  Login
+                </Button>
+              </Link>
+              <Link to="/auth?mode=signup">
+                <Button variant="hero" size="sm">
+                  Sign Up
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
