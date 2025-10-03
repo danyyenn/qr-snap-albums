@@ -213,6 +213,10 @@ export type Database = {
         Args: { p_code: string; p_user_id: string }
         Returns: undefined
       }
+      event_allows_guest_view: {
+        Args: { p_event_id: string }
+        Returns: boolean
+      }
       get_event_by_upload_code: {
         Args: { p_upload_code: string }
         Returns: {
