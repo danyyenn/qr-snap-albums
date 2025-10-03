@@ -92,7 +92,7 @@ const EventDetail = () => {
     }
   };
 
-  const uploadUrl = `${window.location.origin}/upload/${event?.upload_code}`;
+  const uploadUrl = `${window.location.origin}/guest`;
 
   const handleShare = () => {
     if (navigator.share) {

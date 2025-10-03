@@ -10,6 +10,7 @@ import Admin from "./pages/Admin";
 import CreateEvent from "./pages/CreateEvent";
 import EventDetail from "./pages/EventDetail";
 import Upload from "./pages/Upload";
+import GuestUpload from "./pages/GuestUpload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/events/new" element={<CreateEvent />} />
           <Route path="/events/:id" element={<EventDetail />} />
+          <Route path="/guest" element={<GuestUpload />} />
           <Route path="/upload/:uploadCode" element={<Upload />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
