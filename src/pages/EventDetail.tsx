@@ -92,7 +92,12 @@ const EventDetail = () => {
     }
   };
 
-  const uploadUrl = `${window.location.origin}/guest`;
+  // Use the full URL for the guest upload page
+  const uploadUrl = typeof window !== 'undefined' 
+    ? `${window.location.protocol}//${window.location.host}/guest`
+    : '/guest';
+  
+  console.log('QR Code URL:', uploadUrl); // Debug: Check what URL is generated
 
   const handleShare = () => {
     if (navigator.share) {
