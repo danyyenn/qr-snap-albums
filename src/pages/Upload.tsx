@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -203,6 +204,11 @@ const Upload = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{event?.name ? `Upload to ${event.name}` : "Upload Photos"} - FlashNShare</title>
+        <meta name="description" content={`Upload your photos to ${event?.name || "this event"}. Share your party and event photos instantly with the host.`} />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Header />
 
       <main className="container mx-auto px-4 py-24 max-w-4xl">

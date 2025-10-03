@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -309,6 +310,11 @@ const EventDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{event?.name ? `${event.name} - Event Photos` : "Event Photos"} - FlashNShare</title>
+        <meta name="description" content={`View and manage photos for ${event?.name || "your event"}. Download QR code, share upload link with guests, and manage your event gallery.`} />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Header />
 
       <main className="container mx-auto px-4 py-24">
