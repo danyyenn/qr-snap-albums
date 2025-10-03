@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings } from "lucide-react";
+import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown } from "lucide-react";
 import JSZip from "jszip";
 import {
   AlertDialog,
@@ -191,6 +191,35 @@ const EventDetail = () => {
     }
   };
 
+  const handleDownloadPhoto = async (photo: Photo) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("event-photos")
+        .download(photo.storage_path);
+
+      if (error) throw error;
+      if (data) {
+        const url = URL.createObjectURL(data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = photo.original_filename || `photo-${photo.id}.jpg`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "Downloaded!",
+          description: "Photo downloaded successfully",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: error.message,
+      });
+    }
+  };
+
   const handleDeletePhoto = async () => {
     if (!deletePhotoId) return;
 
@@ -364,16 +393,24 @@ const EventDetail = () => {
                       alt={photo.original_filename}
                       className="w-full aspect-square object-cover rounded-lg"
                     />
-                    {isHost && (
+                    <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
-                        onClick={() => setDeletePhotoId(photo.id)}
-                        variant="destructive"
+                        onClick={() => handleDownloadPhoto(photo)}
+                        variant="secondary"
                         size="icon"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <ArrowDown className="w-4 h-4" />
                       </Button>
-                    )}
+                      {isHost && (
+                        <Button
+                          onClick={() => setDeletePhotoId(photo.id)}
+                          variant="destructive"
+                          size="icon"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
