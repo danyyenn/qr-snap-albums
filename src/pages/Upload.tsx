@@ -36,12 +36,9 @@ const Upload = () => {
   const loadEvent = async () => {
     try {
       const { data, error } = await supabase
-        .from("events")
-        .select("id, name, event_date, location, description")
-        .eq("upload_code", uploadCode)
-        .single();
+        .rpc("get_event_by_upload_code", { p_upload_code: uploadCode });
 
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
         toast({
           variant: "destructive",
           title: "Invalid Code",
@@ -50,7 +47,7 @@ const Upload = () => {
         return;
       }
 
-      setEvent(data);
+      setEvent(data[0]);
     } catch (error: any) {
       toast({
         variant: "destructive",

@@ -28,12 +28,9 @@ const GuestUpload = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("events")
-        .select("upload_code")
-        .eq("upload_code", pin)
-        .single();
+        .rpc("get_event_by_upload_code", { p_upload_code: pin });
 
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
         toast({
           variant: "destructive",
           title: "Invalid PIN",

@@ -213,6 +213,16 @@ export type Database = {
         Args: { p_code: string; p_user_id: string }
         Returns: undefined
       }
+      get_event_by_upload_code: {
+        Args: { p_upload_code: string }
+        Returns: {
+          description: string
+          event_date: string
+          id: string
+          location: string
+          name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
