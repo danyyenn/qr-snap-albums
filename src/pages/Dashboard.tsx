@@ -145,27 +145,6 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      {/* Top Bar */}
-      <div className="border-b bg-muted/30">
-        <div className="container mx-auto px-4 py-3 flex justify-end items-center gap-4">
-          <span className="text-sm text-muted-foreground hidden sm:inline">
-            {profile?.full_name || user?.email}
-          </span>
-          {profile?.is_host && (
-            <Link to="/admin">
-              <Button variant="ghost" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
-          )}
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
