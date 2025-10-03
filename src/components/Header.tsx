@@ -62,9 +62,16 @@ const Header = () => {
         
         <div className="flex items-center gap-3">
           {user ? (
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              Logout
-            </Button>
+            <>
+              <Link to="/dashboard">
+                <Button variant="outline" size="sm">
+                  Dashboard
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
           ) : (
             <>
               <Link to="/auth">
