@@ -171,6 +171,8 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string
+          events_allowed: number | null
+          events_created: number | null
           full_name: string | null
           id: string
           is_host: boolean | null
@@ -179,6 +181,8 @@ export type Database = {
         Insert: {
           created_at?: string | null
           email: string
+          events_allowed?: number | null
+          events_created?: number | null
           full_name?: string | null
           id: string
           is_host?: boolean | null
@@ -187,6 +191,8 @@ export type Database = {
         Update: {
           created_at?: string | null
           email?: string
+          events_allowed?: number | null
+          events_created?: number | null
           full_name?: string | null
           id?: string
           is_host?: boolean | null
@@ -199,6 +205,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_event: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       claim_host_code: {
         Args: { p_code: string; p_user_id: string }
         Returns: undefined

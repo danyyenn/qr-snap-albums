@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canCreateEvent, setCanCreateEvent] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -47,6 +48,13 @@ const Dashboard = () => {
       .single();
     
     setProfile(profileData);
+
+    // Check if user can create more events
+    if (profileData?.is_host) {
+      setCanCreateEvent(
+        (profileData.events_created || 0) < (profileData.events_allowed || 0)
+      );
+    }
 
     const { data: eventsData, error } = await supabase
       .from("events")
@@ -121,10 +129,12 @@ const Dashboard = () => {
           <div>
             <h1 className="text-4xl font-bold mb-2">My Events</h1>
             <p className="text-muted-foreground">
-              {profile?.is_host ? "Manage your event photo galleries" : "View your events"}
+              {profile?.is_host 
+                ? `Manage your event photo galleries (${profile.events_created || 0}/${profile.events_allowed || 0} events used)` 
+                : "View your events"}
             </p>
           </div>
-          {profile?.is_host && (
+          {profile?.is_host && canCreateEvent && (
             <Link to="/events/new">
               <Button variant="hero" size="lg">
                 <Plus className="w-5 h-5 mr-2" />
@@ -133,6 +143,25 @@ const Dashboard = () => {
             </Link>
           )}
         </div>
+
+        {profile?.is_host && !canCreateEvent && (
+          <Card className="mb-8 border-amber-500/20 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle>Event Limit Reached</CardTitle>
+              <CardDescription>
+                You've used all {profile.events_allowed} event{profile.events_allowed > 1 ? 's' : ''} from your Etsy purchase.
+                Purchase another invitation on Etsy to create more events.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <a href="https://etsy.com/your-shop-url" target="_blank" rel="noopener noreferrer">
+                <Button variant="outline">
+                  Shop Invitations on Etsy
+                </Button>
+              </a>
+            </CardFooter>
+          </Card>
+        )}
 
         {!profile?.is_host && (
           <Card className="mb-8 border-primary/20 bg-gradient-primary/5">
@@ -162,13 +191,18 @@ const Dashboard = () => {
                   ? "Create your first event to start collecting photos!"
                   : "You haven't been added to any events yet."}
               </p>
-              {profile?.is_host && (
+              {profile?.is_host && canCreateEvent && (
                 <Link to="/events/new">
                   <Button variant="hero" className="mt-4">
                     <Plus className="w-5 h-5 mr-2" />
                     Create Your First Event
                   </Button>
                 </Link>
+              )}
+              {profile?.is_host && !canCreateEvent && (
+                <p className="text-muted-foreground mt-4">
+                  Purchase another invitation on Etsy to create more events.
+                </p>
               )}
             </CardContent>
           </Card>

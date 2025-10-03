@@ -35,7 +35,7 @@ const CreateEvent = () => {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_host")
+      .select("is_host, events_allowed, events_created")
       .eq("id", session.user.id)
       .single();
 
@@ -46,11 +46,26 @@ const CreateEvent = () => {
         description: "You need to be a host to create events.",
       });
       navigate("/dashboard");
+      return;
+    }
+
+    // Check if user has remaining event credits
+    const eventsCreated = profile.events_created || 0;
+    const eventsAllowed = profile.events_allowed || 0;
+    
+    if (eventsCreated >= eventsAllowed) {
+      toast({
+        variant: "destructive",
+        title: "Event Limit Reached",
+        description: `You've used all ${eventsAllowed} event${eventsAllowed > 1 ? 's' : ''}. Purchase another invitation on Etsy.`,
+      });
+      navigate("/dashboard");
     }
   };
 
   const generateUploadCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Generate 4-digit numeric PIN
+    return Math.floor(1000 + Math.random() * 9000).toString();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
