@@ -160,16 +160,78 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="py-8 px-4 border-t">
-        <div className="container mx-auto text-center space-y-3">
-          <p className="text-muted-foreground">&copy; 2025 FlashNShare. Made with ♥ for party hosts.</p>
-          <a 
-            href="https://www.etsy.com/shop/YourShopNameHere" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-block text-primary hover:underline"
-          >
-            Shop Invitations on Etsy
-          </a>
+        <div className="container mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-6">
+            <div>
+              <h3 className="font-bold mb-3">FlashNShare</h3>
+              <p className="text-sm text-muted-foreground">
+                QR-powered photo sharing for events. Made with ♥ for party hosts.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3 text-sm">Product</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/faq" className="text-muted-foreground hover:text-primary transition-colors">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <a 
+                    href="https://www.etsy.com/shop/YourShopNameHere" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Shop Invitations
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3 text-sm">Legal</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
+                    Terms of Service
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3 text-sm">Support</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a 
+                    href="mailto:support@flashnshare.com" 
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Contact Us
+                  </a>
+                </li>
+                <li>
+                  <Link to="/auth" className="text-muted-foreground hover:text-primary transition-colors">
+                    Sign In
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t pt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              &copy; 2025 FlashNShare. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

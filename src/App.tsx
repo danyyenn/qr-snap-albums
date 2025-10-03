@@ -11,6 +11,10 @@ import CreateEvent from "./pages/CreateEvent";
 import EventDetail from "./pages/EventDetail";
 import Upload from "./pages/Upload";
 import GuestUpload from "./pages/GuestUpload";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import About from "./pages/About";
+import FAQ from "./pages/FAQ";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +34,10 @@ const App = () => (
           <Route path="/events/:id" element={<EventDetail />} />
           <Route path="/guest" element={<GuestUpload />} />
           <Route path="/upload/:uploadCode" element={<Upload />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/faq" element={<FAQ />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
