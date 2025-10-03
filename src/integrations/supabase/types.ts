@@ -225,7 +225,9 @@ export type Database = {
           event_date: string
           id: string
           location: string
+          max_photos: number
           name: string
+          require_approval: boolean
         }[]
       }
     }

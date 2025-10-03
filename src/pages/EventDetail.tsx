@@ -41,6 +41,7 @@ interface Event {
   allow_guest_view: boolean;
   require_approval: boolean;
   is_public_gallery: boolean;
+  max_photos: number;
 }
 
 interface Photo {
@@ -48,6 +49,7 @@ interface Photo {
   storage_path: string;
   original_filename: string;
   uploaded_at: string;
+  is_approved: boolean;
 }
 
 const EventDetail = () => {
@@ -392,6 +394,33 @@ const EventDetail = () => {
     }
   };
 
+  const handleApprovePhoto = async (photoId: string) => {
+    try {
+      const { error } = await supabase
+        .from("photos")
+        .update({ is_approved: true })
+        .eq("id", photoId);
+
+      if (error) throw error;
+
+      setPhotos(photos.map(p => p.id === photoId ? { ...p, is_approved: true } : p));
+      toast({
+        title: "Photo Approved",
+        description: "Photo is now visible to guests",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  };
+
+  const handleRejectPhoto = async (photoId: string) => {
+    setDeletePhotoId(photoId);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -492,12 +521,38 @@ const EventDetail = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Photos</span>
-                  <span className="font-bold">{photos.length}</span>
+                  <span className="font-bold">{photos.filter(p => p.is_approved).length} / {event.max_photos || 1000}</span>
                 </div>
+                {(() => {
+                  const photoCount = photos.length;
+                  const maxPhotos = event.max_photos || 1000;
+                  const percentFull = (photoCount / maxPhotos) * 100;
+                  
+                  if (percentFull >= 90) {
+                    return (
+                      <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive font-medium">
+                        ⚠️ Almost full!
+                      </div>
+                    );
+                  } else if (percentFull >= 75) {
+                    return (
+                      <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        📸 {Math.round(percentFull)}% full
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {event.require_approval && isHost && (
+                  <div className="flex justify-between pt-2 border-t">
+                    <span className="text-muted-foreground">Pending Approval</span>
+                    <span className="font-bold text-amber-600">{photos.filter(p => !p.is_approved).length}</span>
+                  </div>
+                )}
                 {isHost && (
                   <Button
                     onClick={handleDownloadAll}
-                    disabled={downloading || photos.length === 0}
+                    disabled={downloading || photos.filter(p => p.is_approved).length === 0}
                     variant="hero"
                     className="w-full mt-4"
                   >
@@ -510,24 +565,69 @@ const EventDetail = () => {
           </Card>
         </div>
 
+        {isHost && event.require_approval && photos.filter(p => !p.is_approved).length > 0 && (
+          <Card className="mb-8 border-amber-500/20 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle>Pending Approval</CardTitle>
+              <CardDescription>
+                {photos.filter(p => !p.is_approved).length} photo{photos.filter(p => !p.is_approved).length !== 1 ? 's' : ''} waiting for your review
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {photos.filter(p => !p.is_approved).map((photo) => (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={supabase.storage.from("event-photos").getPublicUrl(photo.storage_path).data.publicUrl}
+                      alt={photo.original_filename}
+                      className="w-full aspect-square object-cover rounded-lg opacity-75"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center gap-2">
+                      <Button
+                        onClick={() => handleApprovePhoto(photo.id)}
+                        variant="default"
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        ✓ Approve
+                      </Button>
+                      <Button
+                        onClick={() => handleRejectPhoto(photo.id)}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        ✗ Reject
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Photo Gallery</CardTitle>
             <CardDescription>
-              {photos.length === 0 ? "No photos yet" : `${photos.length} photos uploaded`}
+              {photos.filter(p => p.is_approved).length === 0 
+                ? "No approved photos yet" 
+                : `${photos.filter(p => p.is_approved).length} approved photo${photos.filter(p => p.is_approved).length !== 1 ? 's' : ''}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {photos.length === 0 ? (
+            {photos.filter(p => p.is_approved).length === 0 ? (
               <div className="text-center py-16">
                 <ImageIcon className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">
-                  Share the QR code or upload link with guests to start collecting photos
+                  {event.require_approval 
+                    ? "Approve photos from the pending section above to display them here"
+                    : "Share the QR code or upload link with guests to start collecting photos"}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {photos.map((photo) => (
+                {photos.filter(p => p.is_approved).map((photo) => (
                   <div key={photo.id} className="relative group">
                     <img
                       src={supabase.storage.from("event-photos").getPublicUrl(photo.storage_path).data.publicUrl}
