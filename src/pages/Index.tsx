@@ -23,7 +23,7 @@ const Index = () => {
           <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
             <h1 className="text-5xl md:text-7xl font-bold leading-tight">
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Event Photo Dump
+                FlashNShare
               </span>
               <br />
               <span className="text-foreground">Memories Made Simple</span>
@@ -154,7 +154,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 px-4 border-t">
         <div className="container mx-auto text-center space-y-3">
-          <p className="text-muted-foreground">&copy; 2025 Event Photo Dump. Made with ♥ for party hosts.</p>
+          <p className="text-muted-foreground">&copy; 2025 FlashNShare. Made with ♥ for party hosts.</p>
           <a 
             href="https://www.etsy.com/shop/YourShopNameHere" 
             target="_blank" 
