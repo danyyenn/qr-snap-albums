@@ -15,6 +15,8 @@ interface Event {
   location: string;
   description: string;
   allow_guest_view: boolean;
+  require_approval: boolean;
+  max_photos: number;
 }
 
 interface Photo {
@@ -22,6 +24,7 @@ interface Photo {
   storage_path: string;
   original_filename: string;
   uploaded_at: string;
+  is_approved: boolean;
 }
 
 interface UploadFile {
@@ -57,10 +60,28 @@ const Upload = () => {
         return;
       }
 
-      setEvent(data[0]);
+      const eventData = data[0];
+      
+      // Check photo count vs limit
+      const { count } = await supabase
+        .from("photos")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventData.id);
+
+      if (count && count >= (eventData.max_photos || 1000)) {
+        toast({
+          variant: "destructive",
+          title: "Event Full",
+          description: "This event has reached its photo limit",
+        });
+        setLoading(false);
+        return;
+      }
+
+      setEvent(eventData);
       
       // Load photos if guest viewing is allowed
-      loadPhotos(data[0].id);
+      loadPhotos(eventData.id);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -111,6 +132,32 @@ const Upload = () => {
   const uploadFiles = async () => {
     if (!event || files.length === 0) return;
 
+    // Check photo limit before uploading
+    const { count: currentCount } = await supabase
+      .from("photos")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", event.id);
+
+    const remainingSlots = (event.max_photos || 1000) - (currentCount || 0);
+    
+    if (remainingSlots <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Upload Limit Reached",
+        description: "This event has reached its maximum photo limit",
+      });
+      return;
+    }
+
+    if (files.length > remainingSlots) {
+      toast({
+        variant: "destructive",
+        title: "Too Many Photos",
+        description: `You can only upload ${remainingSlots} more photo${remainingSlots !== 1 ? 's' : ''}`,
+      });
+      return;
+    }
+
     setUploading(true);
 
     for (let i = 0; i < files.length; i++) {
@@ -138,6 +185,7 @@ const Upload = () => {
           storage_path: fileName,
           original_filename: uploadFile.file.name,
           file_size: uploadFile.file.size,
+          is_approved: !event.require_approval, // Auto-approve if not required
         });
 
         if (dbError) throw dbError;
@@ -165,12 +213,17 @@ const Upload = () => {
 
     const successCount = files.filter((f) => f.status === "success").length;
     if (successCount > 0) {
+      const description = event.require_approval
+        ? `Successfully uploaded ${successCount} photo${successCount > 1 ? "s" : ""}. Waiting for host approval.`
+        : `Successfully uploaded ${successCount} photo${successCount > 1 ? "s" : ""}`;
+      
       toast({
         title: "Upload Complete!",
-        description: `Successfully uploaded ${successCount} photo${successCount > 1 ? "s" : ""}`,
+        description,
       });
       
-      // Reload photos after successful upload
+      // Clear uploaded files and reload photos
+      setFiles([]);
       if (event) {
         loadPhotos(event.id);
       }
@@ -222,6 +275,39 @@ const Upload = () => {
             })}
           </p>
           {event.description && <p className="text-muted-foreground mt-2">{event.description}</p>}
+          
+          {(() => {
+            const photoCount = photos.length;
+            const maxPhotos = event.max_photos || 1000;
+            const percentFull = (photoCount / maxPhotos) * 100;
+            
+            if (percentFull >= 90) {
+              return (
+                <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-sm text-destructive font-medium">
+                    ⚠️ Almost full: {photoCount} / {maxPhotos} photos
+                  </p>
+                </div>
+              );
+            } else if (percentFull >= 75) {
+              return (
+                <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                    📸 {photoCount} / {maxPhotos} photos uploaded
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+          
+          {event.require_approval && (
+            <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-sm text-primary font-medium">
+                📋 Photos require host approval before appearing in the gallery
+              </p>
+            </div>
+          )}
         </div>
 
         <Card>
