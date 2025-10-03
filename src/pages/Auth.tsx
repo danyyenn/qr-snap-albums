@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -152,11 +151,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Helmet>
-        <title>Login & Sign Up - FlashNShare Event Photo Sharing</title>
-        <meta name="description" content="Sign in to FlashNShare to create events, manage photo galleries, and share QR codes with guests. Free account with Etsy purchase." />
-        <meta name="robots" content="noindex, nofollow" />
-      </Helmet>
       <Header />
       <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/30 to-background">
         <Card className="w-full max-w-md">

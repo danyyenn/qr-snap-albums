@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { QrCode, Upload, Image, Shield, Zap, Gift } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
@@ -8,12 +7,6 @@ import Header from "@/components/Header";
 const Index = () => {
   return (
     <div className="min-h-screen">
-      <Helmet>
-        <title>FlashNShare - QR-Powered Party Photo Albums | Event Photo Sharing</title>
-        <meta name="description" content="Free photo-sharing app for events. Create QR codes for your party, guests upload photos instantly. Manage galleries, downloads, and memories with ease." />
-        <meta name="keywords" content="event photos, party photos, QR code photo sharing, photo album, wedding photos, birthday photos, photo sharing app" />
-        <link rel="canonical" href={window.location.href} />
-      </Helmet>
       <Header />
       {/* Hero Section */}
       <section 

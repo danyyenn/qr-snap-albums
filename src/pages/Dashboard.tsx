@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -145,11 +144,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>My Events Dashboard - FlashNShare</title>
-        <meta name="description" content="Manage your event photo galleries, view uploads, and download photos from your FlashNShare events." />
-        <meta name="robots" content="noindex, nofollow" />
-      </Helmet>
       <Header />
 
       {/* Main Content */}
