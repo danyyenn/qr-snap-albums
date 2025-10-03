@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, LogOut, Calendar, Image, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Header from "@/components/Header";
 
 interface Event {
   id: string;
@@ -91,31 +92,28 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link to="/" className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Photo Dump
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {profile?.full_name || user?.email}
-            </span>
-            {profile?.is_host && (
-              <Link to="/admin">
-                <Button variant="ghost" size="sm">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Admin
-                </Button>
-              </Link>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+      <Header />
+      
+      {/* Top Bar */}
+      <div className="border-b bg-muted/30">
+        <div className="container mx-auto px-4 py-3 flex justify-end items-center gap-4">
+          <span className="text-sm text-muted-foreground hidden sm:inline">
+            {profile?.full_name || user?.email}
+          </span>
+          {profile?.is_host && (
+            <Link to="/admin">
+              <Button variant="ghost" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
+            </Link>
+          )}
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">

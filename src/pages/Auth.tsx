@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -146,9 +147,13 @@ const Auth = () => {
     }
   };
 
+  const defaultTab = searchParams.get("mode") === "signup" ? "signup" : "login";
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/30 to-background">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/30 to-background">
+        <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Event Photo Dump</CardTitle>
           <CardDescription className="text-center">
@@ -156,7 +161,7 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -250,7 +255,8 @@ const Auth = () => {
             By continuing, you agree to our Terms of Service and Privacy Policy
           </p>
         </CardFooter>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };

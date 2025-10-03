@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Header from "@/components/Header";
 
 interface ClaimCode {
   id: string;
@@ -136,15 +137,18 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+      <Header />
+      
+      {/* Top Bar */}
+      <div className="border-b bg-muted/30">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <Link to="/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-5 h-5" />
             Back to Dashboard
           </Link>
           <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
-      </header>
+      </div>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Stats */}

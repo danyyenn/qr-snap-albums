@@ -2,10 +2,12 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { QrCode, Upload, Image, Shield, Zap, Gift } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
+import Header from "@/components/Header";
 
 const Index = () => {
   return (
     <div className="min-h-screen">
+      <Header />
       {/* Hero Section */}
       <section 
         className="relative min-h-screen flex items-center justify-center overflow-hidden"
@@ -38,16 +40,27 @@ const Index = () => {
                   Get Started Free
                 </Button>
               </Link>
-              <Link to="/upload/demo">
+              <Link to="/auth?mode=signup">
                 <Button variant="glass" size="xl">
-                  Try Demo Upload
+                  Redeem Etsy Purchase
                 </Button>
               </Link>
             </div>
             
-            <p className="text-sm text-muted-foreground">
-              Free with your Etsy invitation purchase • No credit card required
-            </p>
+            <div className="flex flex-col items-center gap-3 pt-4">
+              <p className="text-sm text-muted-foreground">
+                Free with your Etsy invitation purchase • No credit card required
+              </p>
+              <a 
+                href="https://www.etsy.com/shop/YourShopNameHere" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Button variant="secondary" size="lg">
+                  Shop Invitations on Etsy
+                </Button>
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -140,8 +153,16 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="py-8 px-4 border-t">
-        <div className="container mx-auto text-center text-muted-foreground">
-          <p>&copy; 2025 Event Photo Dump. Made with ♥ for party hosts.</p>
+        <div className="container mx-auto text-center space-y-3">
+          <p className="text-muted-foreground">&copy; 2025 Event Photo Dump. Made with ♥ for party hosts.</p>
+          <a 
+            href="https://www.etsy.com/shop/YourShopNameHere" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-block text-primary hover:underline"
+          >
+            Shop Invitations on Etsy
+          </a>
         </div>
       </footer>
     </div>
