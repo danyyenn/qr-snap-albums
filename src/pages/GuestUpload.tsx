@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,11 @@ const GuestUpload = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Upload Photos to Event - FlashNShare</title>
+        <meta name="description" content="Enter your 4-digit PIN code to upload photos to your event. Share your party and wedding photos instantly with the event host." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Header />
       
       <main className="flex-1 flex items-center justify-center px-4">

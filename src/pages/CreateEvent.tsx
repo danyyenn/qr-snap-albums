@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,11 @@ const CreateEvent = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Create New Event - FlashNShare</title>
+        <meta name="description" content="Set up a new event with QR code photo sharing. Get a unique upload code for guests to share photos instantly." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Header />
       
       <main className="container mx-auto px-4 py-24 max-w-2xl">
