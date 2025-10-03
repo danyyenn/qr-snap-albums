@@ -36,7 +36,7 @@ const Index = () => {
               <span className="text-foreground">Memories Made Simple</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl text-foreground max-w-2xl mx-auto">
               Create a QR code for your event. Guests scan, upload photos instantly. 
               You manage, download, and cherish every moment.
             </p>

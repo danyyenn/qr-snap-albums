@@ -135,28 +135,58 @@ const EventDetail = () => {
     const svg = qrRef.current.querySelector("svg");
     if (!svg) return;
 
-    const svgData = new XMLSerializer().serializeToString(svg);
+    // Clone the SVG to avoid modifying the original
+    const svgClone = svg.cloneNode(true) as SVGElement;
+    const svgData = new XMLSerializer().serializeToString(svgClone);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
+    
+    // Set a fixed size for better mobile compatibility
+    const size = 1000;
+    canvas.width = size;
+    canvas.height = size;
+
     const img = new Image();
 
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
+      if (!ctx) return;
+      
+      // Fill white background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, size, size);
+      
+      // Draw the QR code
+      ctx.drawImage(img, 0, 0, size, size);
+      
+      // Convert to blob and download
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
           link.download = `${event?.name}-qr-code.png`;
+          document.body.appendChild(link);
           link.click();
+          document.body.removeChild(link);
           URL.revokeObjectURL(url);
+          
+          toast({
+            title: "QR Code Downloaded",
+            description: "QR code saved to your device",
+          });
         }
+      }, 'image/png', 1.0);
+    };
+
+    img.onerror = () => {
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: "Could not download QR code. Try again.",
       });
     };
 
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   const handleDownloadAll = async () => {
