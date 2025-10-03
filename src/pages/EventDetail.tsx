@@ -18,6 +18,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface Event {
   id: string;
@@ -28,6 +37,9 @@ interface Event {
   upload_code: string;
   cover_image_url: string;
   host_id: string;
+  allow_guest_view: boolean;
+  require_approval: boolean;
+  is_public_gallery: boolean;
 }
 
 interface Photo {
@@ -47,6 +59,7 @@ const EventDetail = () => {
   const [isHost, setIsHost] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [deletePhotoId, setDeletePhotoId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -256,6 +269,31 @@ const EventDetail = () => {
     }
   };
 
+  const handleSettingChange = async (field: string, value: boolean) => {
+    if (!event) return;
+
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ [field]: value })
+        .eq("id", event.id);
+
+      if (error) throw error;
+
+      setEvent({ ...event, [field]: value });
+      toast({
+        title: "Settings Updated",
+        description: "Event settings have been saved",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -299,7 +337,7 @@ const EventDetail = () => {
           </div>
           {isHost && (
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
@@ -433,6 +471,58 @@ const EventDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Event Settings</DialogTitle>
+            <DialogDescription>
+              Configure privacy and viewing options for your event
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="allow-guest-view">Allow Guests to View Photos</Label>
+                <p className="text-sm text-muted-foreground">
+                  Guests can see approved photos after uploading
+                </p>
+              </div>
+              <Switch
+                id="allow-guest-view"
+                checked={event?.allow_guest_view || false}
+                onCheckedChange={(checked) => handleSettingChange("allow_guest_view", checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="require-approval">Require Photo Approval</Label>
+                <p className="text-sm text-muted-foreground">
+                  You must approve photos before guests can see them
+                </p>
+              </div>
+              <Switch
+                id="require-approval"
+                checked={event?.require_approval || false}
+                onCheckedChange={(checked) => handleSettingChange("require_approval", checked)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="public-gallery">Public Gallery</Label>
+                <p className="text-sm text-muted-foreground">
+                  Anyone with the link can view photos (no upload code needed)
+                </p>
+              </div>
+              <Switch
+                id="public-gallery"
+                checked={event?.is_public_gallery || false}
+                onCheckedChange={(checked) => handleSettingChange("is_public_gallery", checked)}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
