@@ -6,6 +6,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Plus, LogOut, Calendar, Image, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Event {
   id: string;
@@ -26,6 +29,9 @@ const Dashboard = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [canCreateEvent, setCanCreateEvent] = useState(false);
+  const [claimCode, setClaimCode] = useState("");
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -85,6 +91,44 @@ const Dashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
+  };
+
+  const handleClaimCode = async () => {
+    if (!claimCode.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a claim code",
+      });
+      return;
+    }
+
+    setClaiming(true);
+    try {
+      const { error } = await supabase.rpc("claim_host_code", {
+        p_code: claimCode,
+        p_user_id: user.id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Claim code verified! You're now a host.",
+      });
+
+      setClaimDialogOpen(false);
+      setClaimCode("");
+      checkUser(); // Refresh user data
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Invalid or already used claim code",
+      });
+    } finally {
+      setClaiming(false);
+    }
   };
 
   if (loading) {
@@ -172,11 +216,40 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardFooter>
-              <Link to="/auth?tab=signup">
-                <Button variant="outline">
-                  Enter Claim Code
-                </Button>
-              </Link>
+              <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    Enter Claim Code
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Enter Your Claim Code</DialogTitle>
+                    <DialogDescription>
+                      Enter the claim code from your Etsy purchase to become a host and create events.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="claim-code">Claim Code</Label>
+                      <Input
+                        id="claim-code"
+                        placeholder="Enter your claim code"
+                        value={claimCode}
+                        onChange={(e) => setClaimCode(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleClaimCode}
+                      disabled={claiming}
+                    >
+                      {claiming ? "Verifying..." : "Verify Code"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardFooter>
           </Card>
         )}
