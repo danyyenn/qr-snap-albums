@@ -13,6 +13,14 @@ interface Event {
   event_date: string;
   location: string;
   description: string;
+  allow_guest_view: boolean;
+}
+
+interface Photo {
+  id: string;
+  storage_path: string;
+  original_filename: string;
+  uploaded_at: string;
 }
 
 interface UploadFile {
@@ -28,6 +36,7 @@ const Upload = () => {
   const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [photos, setPhotos] = useState<Photo[]>([]);
 
   useEffect(() => {
     loadEvent();
@@ -48,6 +57,9 @@ const Upload = () => {
       }
 
       setEvent(data[0]);
+      
+      // Load photos if guest viewing is allowed
+      loadPhotos(data[0].id);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -56,6 +68,22 @@ const Upload = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPhotos = async (eventId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("photos")
+        .select("*")
+        .eq("event_id", eventId)
+        .eq("is_approved", true)
+        .order("uploaded_at", { ascending: false });
+
+      if (error) throw error;
+      setPhotos(data || []);
+    } catch (error: any) {
+      console.error("Error loading photos:", error);
     }
   };
 
@@ -140,6 +168,11 @@ const Upload = () => {
         title: "Upload Complete!",
         description: `Successfully uploaded ${successCount} photo${successCount > 1 ? "s" : ""}`,
       });
+      
+      // Reload photos after successful upload
+      if (event) {
+        loadPhotos(event.id);
+      }
     }
   };
 
@@ -271,6 +304,30 @@ const Upload = () => {
             )}
           </CardContent>
         </Card>
+
+        {event.allow_guest_view && photos.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Event Photos</CardTitle>
+              <CardDescription>
+                {photos.length} photo{photos.length !== 1 ? "s" : ""} shared at this event
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {photos.map((photo) => (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={supabase.storage.from("event-photos").getPublicUrl(photo.storage_path).data.publicUrl}
+                      alt={photo.original_filename}
+                      className="w-full aspect-square object-cover rounded-lg"
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
