@@ -218,22 +218,21 @@ const Upload = () => {
           throw new Error(`Storage error: ${uploadError.message}`);
         }
 
-        const { data: photoData, error: dbError } = await supabase
-          .from("photos")
-          .insert({
-            event_id: event.id,
-            storage_path: fileName,
-            original_filename: uploadFile.file.name,
-            file_size: uploadFile.file.size,
-            is_approved: !event.require_approval, // Auto-approve if not required
-          })
-          .select()
-          .single();
+        const { data: photoId, error: dbError } = await supabase
+          .rpc('insert_photo', {
+            p_event_id: event.id,
+            p_storage_path: fileName,
+            p_original_filename: uploadFile.file.name,
+            p_file_size: uploadFile.file.size,
+            p_upload_ip: null,
+          });
 
         if (dbError) {
           console.error('Database insert error:', dbError);
           throw new Error(`Database error: ${dbError.message}`);
         }
+
+        const photoData = { id: photoId };
 
         // Save photo ID to localStorage for guest
         if (photoData?.id) {

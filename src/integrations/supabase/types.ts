@@ -230,6 +230,16 @@ export type Database = {
           require_approval: boolean
         }[]
       }
+      insert_photo: {
+        Args: {
+          p_event_id: string
+          p_file_size: number
+          p_original_filename: string
+          p_storage_path: string
+          p_upload_ip: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
