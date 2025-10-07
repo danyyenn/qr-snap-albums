@@ -255,20 +255,21 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       throw new Error("Cloudinary credentials not configured");
     }
 
-    // Helper to create Cloudinary signature for signed uploads
-    const createSignature = (paramsToSign: Record<string, any>) => {
+    // Helper to create Cloudinary signature (SHA-1)
+    const createSignature = async (paramsToSign: Record<string, any>) => {
       const sortedParams = Object.keys(paramsToSign)
         .sort()
         .map(key => `${key}=${paramsToSign[key]}`)
         .join('&');
       
+      const stringToSign = sortedParams + CLOUDINARY_API_SECRET;
       const encoder = new TextEncoder();
-      const data = encoder.encode(sortedParams + CLOUDINARY_API_SECRET);
-      return crypto.subtle.digest('SHA-256', data).then(hash => {
-        return Array.from(new Uint8Array(hash))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
-      });
+      const data = encoder.encode(stringToSign);
+      
+      const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+      return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
     };
 
     // Upload title card with signed upload
