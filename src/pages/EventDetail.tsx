@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Video, Edit2, Check, X, Sparkles, Pencil } from "lucide-react";
+import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Edit2, Check, X, Pencil } from "lucide-react";
 import JSZip from "jszip";
 import {
   AlertDialog,
@@ -54,30 +54,17 @@ interface Photo {
   is_approved: boolean;
 }
 
-interface EventVideo {
-  id: string;
-  event_id: string;
-  status: string;
-  video_url: string | null;
-  metadata: any;
-  created_at: string;
-  completed_at: string | null;
-}
-
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
   const [event, setEvent] = useState<Event | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [videos, setVideos] = useState<EventVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isHost, setIsHost] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [deletePhotoId, setDeletePhotoId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [generatingVideo, setGeneratingVideo] = useState(false);
   const [editingCode, setEditingCode] = useState(false);
   const [newUploadCode, setNewUploadCode] = useState("");
   const [savingCode, setSavingCode] = useState(false);
@@ -88,18 +75,7 @@ const EventDetail = () => {
 
   useEffect(() => {
     loadEventData();
-    
-    // Check for video payment success
-    const videoStatus = searchParams.get('video');
-    if (videoStatus === 'success') {
-      handleVideoPaymentSuccess();
-    } else if (videoStatus === 'cancelled') {
-      toast({
-        title: "Payment Cancelled",
-        description: "Video generation was not started.",
-      });
-    }
-  }, [id, searchParams]);
+  }, [id]);
 
   const loadEventData = async () => {
     try {
@@ -130,18 +106,6 @@ const EventDetail = () => {
 
       if (photosError) throw photosError;
       setPhotos(photosData || []);
-
-      // Load videos if host
-      if (hostStatus) {
-        const { data: videosData, error: videosError } = await supabase
-          .from("event_videos")
-          .select("*")
-          .eq("event_id", id)
-          .order("created_at", { ascending: false });
-
-        if (videosError) console.error("Error loading videos:", videosError);
-        else setVideos(videosData || []);
-      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -547,170 +511,6 @@ const EventDetail = () => {
     setDeletePhotoId(photoId);
   };
 
-  const handleVideoPaymentSuccess = async () => {
-    if (!id) return;
-    
-    const sessionId = searchParams.get('session_id');
-    
-    if (!sessionId) {
-      console.error('No session_id found in URL');
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Payment session not found",
-      });
-      navigate(`/events/${id}`, { replace: true });
-      return;
-    }
-    
-    setGeneratingVideo(true);
-    toast({
-      title: "Payment Successful",
-      description: "Generating your event video...",
-    });
-
-    try {
-      console.log('Calling generate-event-video with:', { eventId: id, sessionId });
-      
-      const { data, error } = await supabase.functions.invoke('generate-event-video', {
-        body: { 
-          eventId: id,
-          sessionId: sessionId
-        }
-      });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        throw error;
-      }
-
-      console.log('Video generation response:', data);
-      const videoId = data?.videoId;
-      
-      toast({
-        title: "Video Generation Started",
-        description: "Your video is being created. Checking for completion...",
-        duration: 8000,
-      });
-      
-      // Poll for video completion
-      if (videoId) {
-        let attempts = 0;
-        const maxAttempts = 60; // Check for up to 2 minutes
-        
-        const pollInterval = setInterval(async () => {
-          attempts++;
-          
-          const { data: videoData, error: videoError } = await supabase
-            .from("event_videos")
-            .select("*")
-            .eq("id", videoId)
-            .single();
-          
-          console.log(`Polling attempt ${attempts}:`, videoData);
-          
-          if (videoError) {
-            console.error('Polling error:', videoError);
-            clearInterval(pollInterval);
-            setGeneratingVideo(false);
-            return;
-          }
-          
-          if (videoData?.status === 'completed') {
-            clearInterval(pollInterval);
-            setGeneratingVideo(false);
-            loadEventData();
-            toast({
-              title: "Video Ready!",
-              description: "Your event video has been generated successfully!",
-            });
-          } else if (videoData?.status === 'failed') {
-            clearInterval(pollInterval);
-            setGeneratingVideo(false);
-            const errorMsg = typeof videoData?.metadata === 'object' && videoData?.metadata !== null 
-              ? (videoData.metadata as any).error 
-              : "Unknown error occurred";
-            toast({
-              variant: "destructive",
-              title: "Video Generation Failed",
-              description: errorMsg || "Unknown error occurred",
-            });
-          } else if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
-            setGeneratingVideo(false);
-            toast({
-              title: "Still Processing",
-              description: "Video generation is taking longer than expected. Please refresh the page in a few minutes.",
-            });
-          }
-        }, 2000); // Check every 2 seconds
-      } else {
-        // Fallback: just reload data
-        loadEventData();
-        setGeneratingVideo(false);
-      }
-    } catch (error: any) {
-      console.error('Video generation error:', error);
-      
-      // Parse error message for better user feedback
-      let errorMessage = "Failed to generate video";
-      if (error.message) {
-        if (error.message.includes("429") || error.message.includes("rate limit")) {
-          errorMessage = "Too many requests. Please wait a moment and try again.";
-        } else if (error.message.includes("402") || error.message.includes("payment")) {
-          errorMessage = "AI credits needed. Please contact support.";
-        } else if (error.message.includes("400") || error.message.includes("AI")) {
-          errorMessage = "AI processing failed. Please try again or contact support.";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      toast({
-        variant: "destructive",
-        title: "Video Generation Failed",
-        description: errorMessage,
-        duration: 10000,
-      });
-      setGeneratingVideo(false);
-    } finally {
-      // Clear the URL params
-      navigate(`/events/${id}`, { replace: true });
-    }
-  };
-
-  const handleGenerateVideo = async () => {
-    if (!id || !isHost) return;
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          variant: "destructive",
-          title: "Authentication Required",
-          description: "Please sign in to generate videos",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('create-video-payment', {
-        body: { eventId: id }
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to create payment session",
-      });
-    }
-  };
-
   const validateUploadCode = (code: string) => {
     const regex = /^[a-zA-Z0-9]{4,6}$/;
     return regex.test(code);
@@ -1043,31 +843,6 @@ const EventDetail = () => {
                       <Download className="w-4 h-4 mr-2" />
                       {downloading ? "Downloading..." : "Download All"}
                     </Button>
-                    <Button
-                      onClick={handleGenerateVideo}
-                      disabled={generatingVideo || photos.filter(p => p.is_approved).length < 3}
-                      variant="hero"
-                      size="xl"
-                      className="w-full mt-2 group relative overflow-hidden py-4"
-                    >
-                      <div className="flex flex-col items-center gap-1.5 px-2">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse flex-shrink-0" />
-                          <span className="text-base sm:text-lg font-bold whitespace-nowrap">
-                            {generatingVideo ? "Processing..." : "Create AI Video - £2.99"}
-                          </span>
-                          <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse flex-shrink-0" />
-                        </div>
-                        <span className="text-xs sm:text-sm opacity-90 font-normal text-center leading-tight px-1">
-                          AI video from your best photos
-                        </span>
-                      </div>
-                    </Button>
-                    {photos.filter(p => p.is_approved).length < 3 && (
-                      <p className="text-xs text-muted-foreground mt-2 text-center">
-                        Need 3+ approved photos for video
-                      </p>
-                    )}
                   </>
                 ) : null}
               </div>
@@ -1112,112 +887,6 @@ const EventDetail = () => {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Event Videos Section */}
-        {isHost && videos.length > 0 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Video className="w-5 h-5" />
-                Event Videos
-              </CardTitle>
-              <CardDescription>
-                Generated event video compilations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {videos.map((video) => (
-                <div key={video.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 border rounded-lg">
-                  <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
-                    <Video className="w-6 h-6 sm:w-8 sm:h-8 text-primary flex-shrink-0 mt-1" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium break-words">
-                        Event Video
-                      </p>
-                      <p className="text-sm text-muted-foreground break-words">
-                        {video.status === 'processing' && 'Processing - This may take a few minutes...'}
-                        {video.status === 'completed' && `Completed ${new Date(video.completed_at!).toLocaleDateString()}`}
-                        {video.status === 'failed' && 'Generation failed'}
-                      </p>
-                      {video.metadata && video.status === 'completed' && (
-                        <p className="text-sm text-muted-foreground">
-                          {video.metadata.photosSelected} photos • {video.metadata.duration}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:flex-shrink-0">
-                    {video.status === 'processing' && (
-                      <span className="text-sm text-yellow-600 flex items-center gap-2">
-                        <div className="animate-spin h-4 w-4 border-2 border-yellow-600 border-t-transparent rounded-full"></div>
-                        Processing
-                      </span>
-                    )}
-                    {video.status === 'completed' && (
-                      <>
-                        <span className="text-sm text-green-600 flex items-center gap-2">
-                          <Check className="w-4 h-4" />
-                          Complete
-                        </span>
-                        {video.video_url && (
-                          <div className="flex gap-2 mt-2 sm:mt-0">
-                            <Button
-                              onClick={async () => {
-                                if (!video.video_url) return;
-                                
-                                try {
-                                  setDownloading(true);
-                                  
-                                  // Download the MP4 video
-                                  const response = await fetch(video.video_url);
-                                  if (!response.ok) throw new Error("Failed to fetch video");
-                                  
-                                  const blob = await response.blob();
-                                  const url = URL.createObjectURL(blob);
-                                  const link = document.createElement("a");
-                                  link.href = url;
-                                  link.download = `${event.name}-reel.mp4`;
-                                  link.click();
-                                  URL.revokeObjectURL(url);
-                                  
-                                  toast({
-                                    title: "Downloaded",
-                                    description: "Video downloaded successfully - ready for Instagram Reels!",
-                                  });
-                                } catch (error) {
-                                  console.error('Download error:', error);
-                                  toast({
-                                    variant: "destructive",
-                                    title: "Download Failed",
-                                    description: "Unable to download video",
-                                  });
-                                } finally {
-                                  setDownloading(false);
-                                }
-                              }}
-                              size="sm"
-                              variant="outline"
-                              disabled={downloading}
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              {downloading ? "Downloading..." : "Download MP4"}
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    {video.status === 'failed' && (
-                      <span className="text-sm text-red-600 flex items-center gap-2">
-                        <X className="w-4 h-4" />
-                        Failed
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
             </CardContent>
           </Card>
         )}
