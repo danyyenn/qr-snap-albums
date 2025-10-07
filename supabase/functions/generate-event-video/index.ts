@@ -222,13 +222,26 @@ serve(async (req) => {
 
         console.log("Uploading images to Cloudinary...");
         
-        // Helper to create form data for Cloudinary upload
+        // Helper to create signed upload to Cloudinary
         const uploadToCloudinary = async (fileData: string, publicId: string) => {
+          const timestamp = Math.floor(Date.now() / 1000);
+          const folder = `event_videos/${eventId}`;
+          
+          // Create signature for signed upload
+          const stringToSign = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
+          
+          const msgBuffer = new TextEncoder().encode(stringToSign);
+          const hashBuffer = await crypto.subtle.digest('SHA-1', msgBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
           const formData = new FormData();
           formData.append("file", fileData);
-          formData.append("upload_preset", "ml_default");
-          formData.append("folder", `event_videos/${eventId}`);
+          formData.append("folder", folder);
           formData.append("public_id", publicId);
+          formData.append("timestamp", timestamp.toString());
+          formData.append("api_key", CLOUDINARY_API_KEY);
+          formData.append("signature", signature);
 
           const response = await fetch(
             `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
