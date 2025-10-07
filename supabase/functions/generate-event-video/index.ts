@@ -255,29 +255,43 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       throw new Error("Cloudinary credentials not configured");
     }
 
-    // Upload title card to Cloudinary using authenticated upload (no preset needed)
+    // Upload using Cloudinary's authenticated upload - properly formatted
     console.log("Uploading title card to Cloudinary...");
     
+    // Create proper signature for Cloudinary
+    const timestamp = Math.round(Date.now() / 1000);
+    const stringToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(stringToSign);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+    const signature = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
     const titleFormData = new FormData();
     titleFormData.append('file', titleImageUrl);
     titleFormData.append('api_key', CLOUDINARY_API_KEY);
+    titleFormData.append('timestamp', timestamp.toString());
+    titleFormData.append('signature', signature);
 
-    const titleCardUpload = await fetch(`https://${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}@api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    const titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: "POST",
       body: titleFormData
     });
 
     if (!titleCardUpload.ok) {
       const errorText = await titleCardUpload.text();
-      console.error("Failed to upload title card:", errorText);
-      throw new Error(`Failed to upload title card to Cloudinary: ${errorText}`);
+      console.error("Cloudinary upload failed:", errorText);
+      console.error("Signature used:", signature);
+      console.error("String to sign:", stringToSign);
+      throw new Error(`Cloudinary upload failed: ${errorText}`);
     }
 
     const titleCardData = await titleCardUpload.json();
     const titleCardPublicId = titleCardData.public_id;
     console.log("Title card uploaded:", titleCardPublicId);
 
-    // Upload selected photos to Cloudinary
+    // Upload photos
     console.log(`Uploading ${selectedPhotos.length} photos to Cloudinary...`);
     const uploadedPhotoIds: string[] = [];
     
@@ -293,12 +307,21 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       }
 
       const base64Data = await imageToBase64(fileData);
+      const photoTimestamp = Math.round(Date.now() / 1000);
+      const photoStringToSign = `timestamp=${photoTimestamp}${CLOUDINARY_API_SECRET}`;
+      const photoData = encoder.encode(photoStringToSign);
+      const photoHashBuffer = await crypto.subtle.digest('SHA-1', photoData);
+      const photoSignature = Array.from(new Uint8Array(photoHashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
       
       const photoFormData = new FormData();
       photoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
       photoFormData.append('api_key', CLOUDINARY_API_KEY);
+      photoFormData.append('timestamp', photoTimestamp.toString());
+      photoFormData.append('signature', photoSignature);
 
-      const uploadResponse = await fetch(`https://${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}@api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: "POST",
         body: photoFormData
       });
@@ -308,8 +331,7 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
         uploadedPhotoIds.push(uploadData.public_id);
         console.log(`Uploaded photo ${uploadedPhotoIds.length}/${selectedPhotos.length}`);
       } else {
-        const errorText = await uploadResponse.text();
-        console.error(`Failed to upload photo:`, errorText);
+        console.error(`Failed to upload photo:`, await uploadResponse.text());
       }
     }
 
