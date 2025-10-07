@@ -50,7 +50,7 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/events/${eventId}?video=success`,
+      success_url: `${req.headers.get("origin")}/events/${eventId}?video=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/events/${eventId}?video=cancelled`,
       metadata: {
         eventId: eventId,

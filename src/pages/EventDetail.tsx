@@ -443,6 +443,19 @@ const EventDetail = () => {
   const handleVideoPaymentSuccess = async () => {
     if (!id) return;
     
+    const sessionId = searchParams.get('session_id');
+    
+    if (!sessionId) {
+      console.error('No session_id found in URL');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Payment session not found",
+      });
+      navigate(`/events/${id}`, { replace: true });
+      return;
+    }
+    
     setGeneratingVideo(true);
     toast({
       title: "Payment Successful",
@@ -450,20 +463,28 @@ const EventDetail = () => {
     });
 
     try {
+      console.log('Calling generate-event-video with:', { eventId: id, sessionId });
+      
       const { data, error } = await supabase.functions.invoke('generate-event-video', {
         body: { 
           eventId: id,
-          sessionId: searchParams.get('session_id') || ''
+          sessionId: sessionId
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
 
+      console.log('Video generation response:', data);
+      
       toast({
         title: "Video Generation Started",
         description: "Your video is being created. This may take a few minutes.",
       });
     } catch (error: any) {
+      console.error('Video generation error:', error);
       toast({
         variant: "destructive",
         title: "Error",
