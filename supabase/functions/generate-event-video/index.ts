@@ -217,25 +217,14 @@ serve(async (req) => {
           throw new Error("No title card image generated");
         }
 
-        // Helper to upload to Cloudinary with proper signature
+        // Helper to upload to Cloudinary with unsigned upload
         const uploadToCloudinary = async (fileData: string, filename: string): Promise<string> => {
-          const timestamp = Math.round(Date.now() / 1000).toString();
-          
-          // Cloudinary signature: params alphabetically sorted (excluding api_key, file, cloud_name, resource_type) + api_secret
-          // For a simple upload with just timestamp, the string to sign is: timestamp=<value><api_secret>
-          const stringToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
-          const encoder = new TextEncoder();
-          const data = encoder.encode(stringToSign);
-          const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-          const signature = Array.from(new Uint8Array(hashBuffer))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-
           const formData = new FormData();
           formData.append('file', fileData);
-          formData.append('api_key', CLOUDINARY_API_KEY);
-          formData.append('timestamp', timestamp);
-          formData.append('signature', signature);
+          formData.append('upload_preset', 'event_photos'); // Using unsigned upload preset
+          formData.append('folder', `event-${eventId}`);
+
+          console.log(`Uploading ${filename} to Cloudinary...`);
 
           const response = await fetch(
             `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
@@ -248,11 +237,11 @@ serve(async (req) => {
           if (!response.ok) {
             const errorText = await response.text();
             console.error(`Cloudinary upload failed for ${filename}:`, errorText);
-            throw new Error(`Upload failed: ${errorText}`);
+            throw new Error(`Upload failed for ${filename}: ${errorText}`);
           }
 
           const result = await response.json();
-          console.log(`Uploaded ${filename} to Cloudinary:`, result.public_id);
+          console.log(`Successfully uploaded ${filename}:`, result.public_id);
           return result.public_id;
         };
 
