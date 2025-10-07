@@ -1166,59 +1166,66 @@ const EventDetail = () => {
                           <div className="flex gap-2 mt-2 sm:mt-0">
                             <Button
                               onClick={async () => {
-                                if (video.video_url) {
-                                  try {
-                                    // Parse the slideshow data
-                                    const slideshowData = JSON.parse(video.video_url);
+                                if (!video.video_url) return;
+                                
+                                try {
+                                  setDownloading(true);
+                                  const slideshowData = JSON.parse(video.video_url);
+                                  const zip = new JSZip();
+                                  
+                                  for (let i = 0; i < slideshowData.length; i++) {
+                                    const slide = slideshowData[i];
                                     
-                                    // Download all images in the slideshow
-                                    for (let i = 0; i < slideshowData.length; i++) {
-                                      const slide = slideshowData[i];
-                                      
-                                      // Handle base64 images (title card)
+                                    try {
                                       if (slide.url.startsWith('data:image')) {
-                                        const link = document.createElement('a');
-                                        link.href = slide.url;
-                                        link.download = `${event.name}-${slide.type === 'title' ? 'title-card' : `photo-${i}`}.png`;
-                                        link.click();
-                                        await new Promise(resolve => setTimeout(resolve, 500));
-                                      } else {
-                                        // Handle regular URLs (photos from storage)
-                                        try {
-                                          const response = await fetch(slide.url);
-                                          const blob = await response.blob();
-                                          const url = URL.createObjectURL(blob);
-                                          const link = document.createElement('a');
-                                          link.href = url;
-                                          link.download = `${event.name}-photo-${i}.jpg`;
-                                          link.click();
-                                          URL.revokeObjectURL(url);
-                                          await new Promise(resolve => setTimeout(resolve, 500));
-                                        } catch (err) {
-                                          console.error(`Failed to download image ${i}:`, err);
+                                        // Handle base64 images (title card)
+                                        const base64Data = slide.url.split(',')[1];
+                                        const binaryData = atob(base64Data);
+                                        const bytes = new Uint8Array(binaryData.length);
+                                        for (let j = 0; j < binaryData.length; j++) {
+                                          bytes[j] = binaryData.charCodeAt(j);
                                         }
+                                        zip.file(`${i === 0 ? 'title-card' : `image-${i}`}.png`, bytes);
+                                      } else {
+                                        // Handle storage URLs
+                                        const response = await fetch(slide.url);
+                                        const blob = await response.blob();
+                                        zip.file(`image-${i}.jpg`, blob);
                                       }
+                                    } catch (err) {
+                                      console.error(`Failed to add image ${i} to zip:`, err);
                                     }
-                                    
-                                    toast({
-                                      title: "Downloaded",
-                                      description: `${slideshowData.length} images downloaded`,
-                                    });
-                                  } catch (error) {
-                                    console.error('Download error:', error);
-                                    toast({
-                                      variant: "destructive",
-                                      title: "Download Failed",
-                                      description: "Unable to download slideshow images",
-                                    });
                                   }
+                                  
+                                  const content = await zip.generateAsync({ type: "blob" });
+                                  const url = URL.createObjectURL(content);
+                                  const link = document.createElement("a");
+                                  link.href = url;
+                                  link.download = `${event.name}-slideshow.zip`;
+                                  link.click();
+                                  URL.revokeObjectURL(url);
+                                  
+                                  toast({
+                                    title: "Downloaded",
+                                    description: `${slideshowData.length} images downloaded as ZIP`,
+                                  });
+                                } catch (error) {
+                                  console.error('Download error:', error);
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Download Failed",
+                                    description: "Unable to download slideshow images",
+                                  });
+                                } finally {
+                                  setDownloading(false);
                                 }
                               }}
                               size="sm"
                               variant="outline"
+                              disabled={downloading}
                             >
                               <Download className="w-4 h-4 mr-2" />
-                              Download All
+                              {downloading ? "Downloading..." : "Download ZIP"}
                             </Button>
                           </div>
                         )}
