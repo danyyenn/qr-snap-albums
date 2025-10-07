@@ -120,7 +120,7 @@ const Index = () => {
             <BenefitCard
               icon={<Gift />}
               title="Free with Etsy Purchase"
-              description="Get your first event free with any Etsy invitation purchase. No hidden costs."
+              description="Get unlimited events free with any Etsy invitation purchase. No hidden costs."
             />
             <BenefitCard
               icon={<QrCode />}
