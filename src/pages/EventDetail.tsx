@@ -53,6 +53,16 @@ interface Photo {
   is_approved: boolean;
 }
 
+interface EventVideo {
+  id: string;
+  event_id: string;
+  status: string;
+  video_url: string | null;
+  metadata: any;
+  created_at: string;
+  completed_at: string | null;
+}
+
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -60,6 +70,7 @@ const EventDetail = () => {
   const [searchParams] = useSearchParams();
   const [event, setEvent] = useState<Event | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [videos, setVideos] = useState<EventVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isHost, setIsHost] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -115,6 +126,18 @@ const EventDetail = () => {
 
       if (photosError) throw photosError;
       setPhotos(photosData || []);
+
+      // Load videos if host
+      if (hostStatus) {
+        const { data: videosData, error: videosError } = await supabase
+          .from("event_videos")
+          .select("*")
+          .eq("event_id", id)
+          .order("created_at", { ascending: false });
+
+        if (videosError) console.error("Error loading videos:", videosError);
+        else setVideos(videosData || []);
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -481,8 +504,12 @@ const EventDetail = () => {
       
       toast({
         title: "Video Generation Started",
-        description: "Your video is being created. This may take a few minutes.",
+        description: "Your video is being created. It will appear in the 'Event Videos' section below when ready (usually within a few minutes).",
+        duration: 8000,
       });
+      
+      // Reload event data to show the processing video
+      loadEventData();
     } catch (error: any) {
       console.error('Video generation error:', error);
       toast({
@@ -849,6 +876,65 @@ const EventDetail = () => {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Event Videos Section */}
+        {isHost && videos.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="w-5 h-5" />
+                Event Videos
+              </CardTitle>
+              <CardDescription>
+                Generated event video compilations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {videos.map((video) => (
+                <div key={video.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <Video className="w-8 h-8 text-primary" />
+                    <div>
+                      <p className="font-medium">
+                        Event Video
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {video.status === 'processing' && 'Processing - This may take a few minutes...'}
+                        {video.status === 'completed' && `Completed ${new Date(video.completed_at!).toLocaleDateString()}`}
+                        {video.status === 'failed' && 'Generation failed'}
+                      </p>
+                      {video.metadata && video.status === 'completed' && (
+                        <p className="text-sm text-muted-foreground">
+                          {video.metadata.frameCount} photos • ~{video.metadata.estimatedDuration}s duration
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {video.status === 'processing' && (
+                      <span className="text-sm text-yellow-600 flex items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-yellow-600 border-t-transparent rounded-full"></div>
+                        Processing
+                      </span>
+                    )}
+                    {video.status === 'completed' && (
+                      <span className="text-sm text-green-600 flex items-center gap-2">
+                        <Check className="w-4 h-4" />
+                        Complete
+                      </span>
+                    )}
+                    {video.status === 'failed' && (
+                      <span className="text-sm text-red-600 flex items-center gap-2">
+                        <X className="w-4 h-4" />
+                        Failed
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}

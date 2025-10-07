@@ -25,6 +25,22 @@ serve(async (req) => {
 
     console.log("Starting video generation for event:", eventId);
 
+    // Create video generation record
+    const { data: videoRecord, error: videoInsertError } = await supabaseClient
+      .from("event_videos")
+      .insert({
+        event_id: eventId,
+        stripe_session_id: sessionId,
+        status: 'processing'
+      })
+      .select()
+      .single();
+
+    if (videoInsertError) {
+      console.error("Error creating video record:", videoInsertError);
+      throw videoInsertError;
+    }
+
     // Fetch approved photos for the event
     const { data: photos, error: photosError } = await supabaseClient
       .from("photos")
@@ -109,18 +125,30 @@ serve(async (req) => {
     const aiData = await response.json();
     console.log("AI processing complete");
 
-    // For now, return a simple response indicating video is being processed
-    // In production, this would trigger actual video rendering
-    const videoData = {
-      eventId,
-      sessionId,
+    // Update video record with metadata and mark as completed
+    const videoMetadata = {
       frameCount: images.length,
-      status: "processing",
-      metadata: aiData.choices[0].message.content,
-      estimatedDuration: images.length * 3, // 3 seconds per photo
+      estimatedDuration: images.length * 3,
+      aiMetadata: aiData.choices[0].message.content,
+      photosUsed: photos.length
     };
 
-    return new Response(JSON.stringify(videoData), {
+    await supabaseClient
+      .from("event_videos")
+      .update({
+        status: 'completed',
+        metadata: videoMetadata,
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', videoRecord.id);
+
+    console.log("Video generation completed");
+
+    return new Response(JSON.stringify({
+      success: true,
+      videoId: videoRecord.id,
+      ...videoMetadata
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

@@ -52,6 +52,47 @@ export type Database = {
           },
         ]
       }
+      event_videos: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          event_id: string
+          id: string
+          metadata: Json | null
+          status: string
+          stripe_session_id: string
+          video_url: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          event_id: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          stripe_session_id: string
+          video_url?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          stripe_session_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_videos_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           allow_guest_view: boolean | null
