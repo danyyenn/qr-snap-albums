@@ -20,6 +20,7 @@ const CreateEvent = () => {
     event_date: "",
     location: "",
     description: "",
+    upload_code: "",
   });
 
   useEffect(() => {
@@ -69,6 +70,22 @@ const CreateEvent = () => {
     return Math.floor(1000 + Math.random() * 9000).toString();
   };
 
+  const validateUploadCode = (code: string) => {
+    // Allow 4-6 alphanumeric characters
+    const regex = /^[a-zA-Z0-9]{4,6}$/;
+    return regex.test(code);
+  };
+
+  const checkCodeUnique = async (code: string) => {
+    const { data, error } = await supabase
+      .from("events")
+      .select("id")
+      .eq("upload_code", code)
+      .maybeSingle();
+    
+    return !data; // true if no existing event with this code
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -79,7 +96,23 @@ const CreateEvent = () => {
         throw new Error("Not authenticated");
       }
 
-      const uploadCode = generateUploadCode();
+      let uploadCode = formData.upload_code.trim().toUpperCase();
+      
+      // If no custom code provided, generate one
+      if (!uploadCode) {
+        uploadCode = generateUploadCode();
+      } else {
+        // Validate custom code
+        if (!validateUploadCode(uploadCode)) {
+          throw new Error("Upload code must be 4-6 alphanumeric characters");
+        }
+        
+        // Check if code is unique
+        const isUnique = await checkCodeUnique(uploadCode);
+        if (!isUnique) {
+          throw new Error("This upload code is already in use. Please choose another.");
+        }
+      }
 
       const { data, error } = await supabase
         .from("events")
@@ -189,6 +222,23 @@ const CreateEvent = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="upload_code">
+                  Upload Code (Optional)
+                </Label>
+                <Input
+                  id="upload_code"
+                  placeholder="Leave blank for auto-generated code"
+                  value={formData.upload_code}
+                  onChange={(e) => setFormData({ ...formData, upload_code: e.target.value.toUpperCase() })}
+                  maxLength={6}
+                  className="uppercase"
+                />
+                <p className="text-xs text-muted-foreground">
+                  4-6 characters, letters and numbers only. Leave blank to auto-generate.
+                </p>
               </div>
 
               <div className="flex gap-4 pt-4">

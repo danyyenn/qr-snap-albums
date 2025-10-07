@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Video } from "lucide-react";
+import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Video, Edit2, Check, X } from "lucide-react";
 import JSZip from "jszip";
 import {
   AlertDialog,
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface Event {
   id: string;
@@ -65,6 +66,9 @@ const EventDetail = () => {
   const [deletePhotoId, setDeletePhotoId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [editingCode, setEditingCode] = useState(false);
+  const [newUploadCode, setNewUploadCode] = useState("");
+  const [savingCode, setSavingCode] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -504,6 +508,78 @@ const EventDetail = () => {
     }
   };
 
+  const validateUploadCode = (code: string) => {
+    const regex = /^[a-zA-Z0-9]{4,6}$/;
+    return regex.test(code);
+  };
+
+  const handleEditCode = () => {
+    setNewUploadCode(event?.upload_code || "");
+    setEditingCode(true);
+  };
+
+  const handleCancelEditCode = () => {
+    setEditingCode(false);
+    setNewUploadCode("");
+  };
+
+  const handleSaveCode = async () => {
+    if (!event || !newUploadCode) return;
+
+    const trimmedCode = newUploadCode.trim().toUpperCase();
+    
+    if (!validateUploadCode(trimmedCode)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Code",
+        description: "Upload code must be 4-6 alphanumeric characters",
+      });
+      return;
+    }
+
+    if (trimmedCode === event.upload_code) {
+      setEditingCode(false);
+      return;
+    }
+
+    setSavingCode(true);
+    try {
+      // Check if code is unique
+      const { data: existingEvent } = await supabase
+        .from("events")
+        .select("id")
+        .eq("upload_code", trimmedCode)
+        .neq("id", event.id)
+        .maybeSingle();
+
+      if (existingEvent) {
+        throw new Error("This upload code is already in use");
+      }
+
+      const { error } = await supabase
+        .from("events")
+        .update({ upload_code: trimmedCode })
+        .eq("id", event.id);
+
+      if (error) throw error;
+
+      setEvent({ ...event, upload_code: trimmedCode });
+      setEditingCode(false);
+      toast({
+        title: "Code Updated",
+        description: "Upload code has been changed successfully",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setSavingCode(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -589,9 +665,60 @@ const EventDetail = () => {
               <CardDescription>Guests can use this code</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-center py-4 bg-muted rounded-lg">
-                {event.upload_code}
-              </div>
+              {editingCode ? (
+                <div className="space-y-3">
+                  <Input
+                    value={newUploadCode}
+                    onChange={(e) => setNewUploadCode(e.target.value.toUpperCase())}
+                    maxLength={6}
+                    className="text-2xl font-bold text-center uppercase"
+                    placeholder="Enter code"
+                    disabled={savingCode}
+                  />
+                  <p className="text-xs text-muted-foreground text-center">
+                    4-6 characters, letters and numbers only
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSaveCode}
+                      disabled={savingCode}
+                      variant="default"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      {savingCode ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      onClick={handleCancelEditCode}
+                      disabled={savingCode}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold text-center py-4 bg-muted rounded-lg">
+                    {event.upload_code}
+                  </div>
+                  {isHost && (
+                    <Button
+                      onClick={handleEditCode}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full mt-2"
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit Code
+                    </Button>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 
