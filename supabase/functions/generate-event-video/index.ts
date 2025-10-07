@@ -221,7 +221,8 @@ serve(async (req) => {
         const uploadToCloudinary = async (fileData: string, filename: string): Promise<string> => {
           const timestamp = Math.round(Date.now() / 1000).toString();
           
-          // Create signature (MUST be: timestamp=<value><api_secret>)
+          // Cloudinary signature: params alphabetically sorted (excluding api_key, file, cloud_name, resource_type) + api_secret
+          // For a simple upload with just timestamp, the string to sign is: timestamp=<value><api_secret>
           const stringToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
           const encoder = new TextEncoder();
           const data = encoder.encode(stringToSign);
@@ -232,8 +233,8 @@ serve(async (req) => {
 
           const formData = new FormData();
           formData.append('file', fileData);
-          formData.append('timestamp', timestamp);
           formData.append('api_key', CLOUDINARY_API_KEY);
+          formData.append('timestamp', timestamp);
           formData.append('signature', signature);
 
           const response = await fetch(
