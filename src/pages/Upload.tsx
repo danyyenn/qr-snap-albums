@@ -41,6 +41,7 @@ const Upload = () => {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [guestUploadedPhotos, setGuestUploadedPhotos] = useState<Photo[]>([]);
 
   useEffect(() => {
     loadEvent();
@@ -95,6 +96,7 @@ const Upload = () => {
 
   const loadPhotos = async (eventId: string) => {
     try {
+      // Load approved photos
       const { data, error } = await supabase
         .from("photos")
         .select("*")
@@ -104,8 +106,41 @@ const Upload = () => {
 
       if (error) throw error;
       setPhotos(data || []);
+
+      // Load guest's uploaded photos (even if not approved)
+      const guestPhotoIds = getGuestPhotoIds(eventId);
+      if (guestPhotoIds.length > 0) {
+        const { data: guestPhotos, error: guestError } = await supabase
+          .from("photos")
+          .select("*")
+          .in("id", guestPhotoIds)
+          .order("uploaded_at", { ascending: false });
+
+        if (!guestError && guestPhotos) {
+          setGuestUploadedPhotos(guestPhotos);
+        }
+      }
     } catch (error: any) {
       console.error("Error loading photos:", error);
+    }
+  };
+
+  const getGuestPhotoIds = (eventId: string): string[] => {
+    try {
+      const stored = localStorage.getItem(`guest_photos_${eventId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveGuestPhotoId = (eventId: string, photoId: string) => {
+    try {
+      const existing = getGuestPhotoIds(eventId);
+      const updated = [...existing, photoId];
+      localStorage.setItem(`guest_photos_${eventId}`, JSON.stringify(updated));
+    } catch (error) {
+      console.error("Error saving photo ID:", error);
     }
   };
 
@@ -180,15 +215,24 @@ const Upload = () => {
 
         if (uploadError) throw uploadError;
 
-        const { error: dbError } = await supabase.from("photos").insert({
-          event_id: event.id,
-          storage_path: fileName,
-          original_filename: uploadFile.file.name,
-          file_size: uploadFile.file.size,
-          is_approved: !event.require_approval, // Auto-approve if not required
-        });
+        const { data: photoData, error: dbError } = await supabase
+          .from("photos")
+          .insert({
+            event_id: event.id,
+            storage_path: fileName,
+            original_filename: uploadFile.file.name,
+            file_size: uploadFile.file.size,
+            is_approved: !event.require_approval, // Auto-approve if not required
+          })
+          .select()
+          .single();
 
         if (dbError) throw dbError;
+
+        // Save photo ID to localStorage for guest
+        if (photoData?.id) {
+          saveGuestPhotoId(event.id, photoData.id);
+        }
 
         setFiles((prev) => {
           const updated = [...prev];
@@ -397,12 +441,46 @@ const Upload = () => {
           </CardContent>
         </Card>
 
+        {guestUploadedPhotos.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Your Uploaded Photos</CardTitle>
+              <CardDescription>
+                {guestUploadedPhotos.length} photo{guestUploadedPhotos.length !== 1 ? "s" : ""} you've uploaded
+                {event.require_approval && guestUploadedPhotos.some(p => !p.is_approved) && (
+                  <span className="block mt-1 text-amber-600 dark:text-amber-400">
+                    • Photos pending approval will appear in the gallery once approved by the host
+                  </span>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {guestUploadedPhotos.map((photo) => (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={supabase.storage.from("event-photos").getPublicUrl(photo.storage_path).data.publicUrl}
+                      alt={photo.original_filename}
+                      className="w-full aspect-square object-cover rounded-lg"
+                    />
+                    {!photo.is_approved && (
+                      <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">
+                        Pending
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {event.allow_guest_view && photos.length > 0 && (
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Event Photos</CardTitle>
+              <CardTitle>Event Gallery</CardTitle>
               <CardDescription>
-                {photos.length} photo{photos.length !== 1 ? "s" : ""} shared at this event
+                {photos.length} approved photo{photos.length !== 1 ? "s" : ""} from all guests
               </CardDescription>
             </CardHeader>
             <CardContent>
