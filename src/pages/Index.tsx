@@ -103,7 +103,7 @@ const Index = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-center mb-16">
-            Why Choose Photo Dump?
+            Why Choose Flash N Share?
           </h2>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -148,7 +148,7 @@ const Index = () => {
             Ready to Capture Your Event?
           </h2>
           <p className="text-xl opacity-90">
-            Join hundreds of hosts who trust Photo Dump for their special moments.
+            Join hundreds of hosts who trust Flash N Share for their special moments.
           </p>
           <Link to="/auth">
             <Button variant="secondary" size="xl" className="mt-4">
