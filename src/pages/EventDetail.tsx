@@ -1170,51 +1170,29 @@ const EventDetail = () => {
                                 
                                 try {
                                   setDownloading(true);
-                                  const slideshowData = JSON.parse(video.video_url);
-                                  const zip = new JSZip();
                                   
-                                  for (let i = 0; i < slideshowData.length; i++) {
-                                    const slide = slideshowData[i];
-                                    
-                                    try {
-                                      if (slide.url.startsWith('data:image')) {
-                                        // Handle base64 images (title card)
-                                        const base64Data = slide.url.split(',')[1];
-                                        const binaryData = atob(base64Data);
-                                        const bytes = new Uint8Array(binaryData.length);
-                                        for (let j = 0; j < binaryData.length; j++) {
-                                          bytes[j] = binaryData.charCodeAt(j);
-                                        }
-                                        zip.file(`${i === 0 ? 'title-card' : `image-${i}`}.png`, bytes);
-                                      } else {
-                                        // Handle storage URLs
-                                        const response = await fetch(slide.url);
-                                        const blob = await response.blob();
-                                        zip.file(`image-${i}.jpg`, blob);
-                                      }
-                                    } catch (err) {
-                                      console.error(`Failed to add image ${i} to zip:`, err);
-                                    }
-                                  }
+                                  // Download the MP4 video
+                                  const response = await fetch(video.video_url);
+                                  if (!response.ok) throw new Error("Failed to fetch video");
                                   
-                                  const content = await zip.generateAsync({ type: "blob" });
-                                  const url = URL.createObjectURL(content);
+                                  const blob = await response.blob();
+                                  const url = URL.createObjectURL(blob);
                                   const link = document.createElement("a");
                                   link.href = url;
-                                  link.download = `${event.name}-slideshow.zip`;
+                                  link.download = `${event.name}-reel.mp4`;
                                   link.click();
                                   URL.revokeObjectURL(url);
                                   
                                   toast({
                                     title: "Downloaded",
-                                    description: `${slideshowData.length} images downloaded as ZIP`,
+                                    description: "Video downloaded successfully - ready for Instagram Reels!",
                                   });
                                 } catch (error) {
                                   console.error('Download error:', error);
                                   toast({
                                     variant: "destructive",
                                     title: "Download Failed",
-                                    description: "Unable to download slideshow images",
+                                    description: "Unable to download video",
                                   });
                                 } finally {
                                   setDownloading(false);
@@ -1225,7 +1203,7 @@ const EventDetail = () => {
                               disabled={downloading}
                             >
                               <Download className="w-4 h-4 mr-2" />
-                              {downloading ? "Downloading..." : "Download ZIP"}
+                              {downloading ? "Downloading..." : "Download MP4"}
                             </Button>
                           </div>
                         )}

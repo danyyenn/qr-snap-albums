@@ -211,50 +211,99 @@ serve(async (req) => {
           throw new Error("No title card image generated");
         }
 
-        // Store title card and selected photo URLs in metadata
-        // We'll use a simple slideshow approach instead of video generation
-        console.log("Preparing slideshow data...");
-        
-        const slideshowImages = [
-          { url: titleImageUrl, duration: 3, type: 'title' }
-        ];
+        // Get Cloudinary credentials
+        const CLOUDINARY_CLOUD_NAME = Deno.env.get("CLOUDINARY_CLOUD_NAME");
+        const CLOUDINARY_API_KEY = Deno.env.get("CLOUDINARY_API_KEY");
+        const CLOUDINARY_API_SECRET = Deno.env.get("CLOUDINARY_API_SECRET");
 
-        // Add selected photos
-        for (let i = 0; i < selectedPhotos.length; i++) {
-          const photo = selectedPhotos[i];
-          try {
-            const { data: { publicUrl } } = supabaseClient
-              .storage
-              .from("event-photos")
-              .getPublicUrl(photo.storage_path);
-            
-            slideshowImages.push({
-              url: publicUrl,
-              duration: 3,
-              type: 'photo'
-            });
-          } catch (error) {
-            console.error(`Failed to get URL for photo ${i + 1}:`, error);
+        if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+          throw new Error("Cloudinary credentials not configured");
+        }
+
+        console.log("Uploading images to Cloudinary...");
+        
+        // Helper to create form data for Cloudinary upload
+        const uploadToCloudinary = async (fileData: string, publicId: string) => {
+          const formData = new FormData();
+          formData.append("file", fileData);
+          formData.append("upload_preset", "ml_default");
+          formData.append("folder", `event_videos/${eventId}`);
+          formData.append("public_id", publicId);
+
+          const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+            { method: "POST", body: formData }
+          );
+
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Upload failed: ${error}`);
           }
+
+          return await response.json();
+        };
+
+        // Upload title card
+        const titleCardResult = await uploadToCloudinary(titleImageUrl, `title_${Date.now()}`);
+        console.log("Title card uploaded:", titleCardResult.public_id);
+
+        // Upload photos in batches
+        const uploadedPhotoIds = [];
+        const batchSize = 5;
+        for (let i = 0; i < selectedPhotos.length; i += batchSize) {
+          const batch = selectedPhotos.slice(i, i + batchSize);
+          const uploads = await Promise.all(
+            batch.map(async (photo, idx) => {
+              try {
+                const { data: fileData } = await supabaseClient
+                  .storage
+                  .from("event-photos")
+                  .download(photo.storage_path);
+
+                if (!fileData) throw new Error("File download returned null");
+
+                const base64 = await imageToBase64(fileData);
+                const result = await uploadToCloudinary(
+                  `data:image/jpeg;base64,${base64}`,
+                  `photo_${i + idx}_${Date.now()}`
+                );
+                console.log(`Photo ${i + idx + 1} uploaded`);
+                return result.public_id;
+              } catch (error) {
+                console.error(`Photo ${i + idx + 1} failed:`, error);
+                return null;
+              }
+            })
+          );
+          uploadedPhotoIds.push(...uploads.filter(id => id !== null));
         }
 
-        console.log(`Prepared ${slideshowImages.length} images for slideshow`);
-
-        if (slideshowImages.length === 1) {
-          throw new Error("No photos were successfully added to slideshow");
+        if (uploadedPhotoIds.length === 0) {
+          throw new Error("No photos uploaded successfully");
         }
 
-        // Create a simple JSON manifest for the slideshow
-        const videoUrl = JSON.stringify(slideshowImages);
+        console.log(`Creating video from ${uploadedPhotoIds.length + 1} images...`);
+
+        // Create video using Cloudinary Video API
+        const allImages = [titleCardResult.public_id, ...uploadedPhotoIds];
+        const videoPublicId = `event_videos/${eventId}/reel_${Date.now()}`;
         
-        console.log("Slideshow data created");
+        // Build slideshow video URL (9:16 for Instagram Reels)
+        // Each image shows for 3 seconds
+        const transformations = allImages
+          .map((id, i) => `l_${id.replace(/\//g, ':')},w_1080,h_1920,c_fill,g_center,du_3,so_${i * 3}`)
+          .join('/');
+        
+        const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${transformations}/f_mp4,vc_h264/${videoPublicId}.mp4`;
+        
+        console.log("Video URL generated:", videoUrl);
 
         // Update video record
         const metadata = {
           totalPhotos: photos.length,
           selectedPhotos: selectedPhotos.length,
           eventName: eventData.name,
-          slideshowImages: slideshowImages.length,
+          cloudinaryImages: allImages.length,
           generatedAt: new Date().toISOString()
         };
 
