@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Video, Edit2, Check, X } from "lucide-react";
+import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Video, Edit2, Check, X, Sparkles } from "lucide-react";
 import JSZip from "jszip";
 import {
   AlertDialog,
@@ -821,11 +821,22 @@ const EventDetail = () => {
                     <Button
                       onClick={handleGenerateVideo}
                       disabled={generatingVideo || photos.filter(p => p.is_approved).length < 3}
-                      variant="outline"
-                      className="w-full mt-2"
+                      variant="hero"
+                      size="xl"
+                      className="w-full mt-2 group relative overflow-hidden"
                     >
-                      <Video className="w-4 h-4 mr-2" />
-                      {generatingVideo ? "Processing..." : "Generate Video (£3)"}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 animate-pulse" />
+                          <span className="text-lg font-bold">
+                            {generatingVideo ? "Processing..." : "Create AI Video - £2.99"}
+                          </span>
+                          <Sparkles className="h-5 w-5 animate-pulse" />
+                        </div>
+                        <span className="text-sm opacity-90 font-normal">
+                          Amazing AI-generated video made from your uploaded photos
+                        </span>
+                      </div>
                     </Button>
                     {photos.filter(p => p.is_approved).length < 3 && (
                       <p className="text-xs text-muted-foreground mt-2 text-center">
