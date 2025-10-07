@@ -650,41 +650,41 @@ const EventDetail = () => {
       </Helmet>
       <Header />
 
-      <main className="container mx-auto px-4 py-24">
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <Link to="/dashboard" className="text-muted-foreground hover:text-primary mb-2 inline-block">
+      <main className="container mx-auto px-4 py-24 max-w-7xl">
+        <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <Link to="/dashboard" className="text-muted-foreground hover:text-primary mb-2 inline-block text-sm">
               ← Back to Dashboard
             </Link>
-            <h1 className="text-4xl font-bold mb-2">{event.name}</h1>
-            <div className="flex flex-wrap gap-4 text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{event.name}</h1>
+            <div className="flex flex-wrap gap-3 sm:gap-4 text-sm sm:text-base text-muted-foreground">
               <span className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                {new Date(event.event_date).toLocaleDateString("en-US", {
+                <Calendar className="w-4 h-4 flex-shrink-0" />
+                <span className="break-words">{new Date(event.event_date).toLocaleDateString("en-US", {
                   month: "long",
                   day: "numeric",
                   year: "numeric",
-                })}
+                })}</span>
               </span>
               {event.location && (
                 <span className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  {event.location}
+                  <MapPin className="w-4 h-4 flex-shrink-0" />
+                  <span className="break-words">{event.location}</span>
                 </span>
               )}
             </div>
           </div>
           {isHost && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+            <div className="flex gap-2 sm:flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} className="w-full sm:w-auto">
+                <Settings className="w-4 h-4 sm:mr-2" />
+                <span className="sm:inline">Settings</span>
               </Button>
             </div>
           )}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <Card>
             <CardHeader>
               <CardTitle>QR Code</CardTitle>
@@ -692,16 +692,16 @@ const EventDetail = () => {
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
               <div ref={qrRef} className="bg-white p-4 rounded-lg">
-                <QRCodeSVG value={uploadUrl} size={200} />
+                <QRCodeSVG value={uploadUrl} size={180} className="w-full h-auto max-w-[200px]" />
               </div>
-              <div className="flex gap-2 w-full">
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
                 <Button onClick={handleDownloadQR} variant="outline" className="flex-1">
                   <Download className="w-4 h-4 mr-2" />
-                  Download
+                  <span className="truncate">Download</span>
                 </Button>
                 <Button onClick={handleShare} variant="outline" className="flex-1">
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                  <span className="truncate">Share</span>
                 </Button>
               </div>
             </CardContent>
@@ -719,7 +719,7 @@ const EventDetail = () => {
                     value={newUploadCode}
                     onChange={(e) => setNewUploadCode(e.target.value.toUpperCase())}
                     maxLength={6}
-                    className="text-2xl font-bold text-center uppercase"
+                    className="text-xl sm:text-2xl font-bold text-center uppercase"
                     placeholder="Enter code"
                     disabled={savingCode}
                   />
@@ -751,7 +751,7 @@ const EventDetail = () => {
                 </div>
               ) : (
                 <>
-                  <div className="text-3xl font-bold text-center py-4 bg-muted rounded-lg">
+                  <div className="text-2xl sm:text-3xl font-bold text-center py-4 bg-muted rounded-lg break-all">
                     {event.upload_code}
                   </div>
                   {isHost && (
@@ -777,9 +777,9 @@ const EventDetail = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Photos</span>
-                  <span className="font-bold">{photos.filter(p => p.is_approved).length} / {event.max_photos || 1000}</span>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-muted-foreground text-sm sm:text-base">Photos</span>
+                  <span className="font-bold text-sm sm:text-base">{photos.filter(p => p.is_approved).length} / {event.max_photos || 1000}</span>
                 </div>
                 {(() => {
                   const photoCount = photos.length;
@@ -802,9 +802,9 @@ const EventDetail = () => {
                   return null;
                 })()}
                 {event.require_approval && isHost && (
-                  <div className="flex justify-between pt-2 border-t">
-                    <span className="text-muted-foreground">Pending Approval</span>
-                    <span className="font-bold text-amber-600">{photos.filter(p => !p.is_approved).length}</span>
+                  <div className="flex justify-between items-center gap-2 pt-2 border-t">
+                    <span className="text-muted-foreground text-sm sm:text-base">Pending Approval</span>
+                    <span className="font-bold text-amber-600 text-sm sm:text-base">{photos.filter(p => !p.is_approved).length}</span>
                   </div>
                 )}
                 {isHost ? (
@@ -823,18 +823,18 @@ const EventDetail = () => {
                       disabled={generatingVideo || photos.filter(p => p.is_approved).length < 3}
                       variant="hero"
                       size="xl"
-                      className="w-full mt-2 group relative overflow-hidden"
+                      className="w-full mt-2 group relative overflow-hidden py-4"
                     >
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col items-center gap-1.5 px-2">
                         <div className="flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 animate-pulse" />
-                          <span className="text-lg font-bold">
+                          <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse flex-shrink-0" />
+                          <span className="text-base sm:text-lg font-bold whitespace-nowrap">
                             {generatingVideo ? "Processing..." : "Create AI Video - £2.99"}
                           </span>
-                          <Sparkles className="h-5 w-5 animate-pulse" />
+                          <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse flex-shrink-0" />
                         </div>
-                        <span className="text-sm opacity-90 font-normal">
-                          Amazing AI-generated video made from your uploaded photos
+                        <span className="text-xs sm:text-sm opacity-90 font-normal text-center leading-tight px-1">
+                          AI video from your best photos
                         </span>
                       </div>
                     </Button>
@@ -905,26 +905,26 @@ const EventDetail = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {videos.map((video) => (
-                <div key={video.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Video className="w-8 h-8 text-primary" />
-                    <div>
-                      <p className="font-medium">
+                <div key={video.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 border rounded-lg">
+                  <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
+                    <Video className="w-6 h-6 sm:w-8 sm:h-8 text-primary flex-shrink-0 mt-1" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium break-words">
                         Event Video
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground break-words">
                         {video.status === 'processing' && 'Processing - This may take a few minutes...'}
                         {video.status === 'completed' && `Completed ${new Date(video.completed_at!).toLocaleDateString()}`}
                         {video.status === 'failed' && 'Generation failed'}
                       </p>
                       {video.metadata && video.status === 'completed' && (
                         <p className="text-sm text-muted-foreground">
-                          {video.metadata.frameCount} photos • ~{video.metadata.estimatedDuration}s duration
+                          {video.metadata.photosSelected} photos • {video.metadata.duration}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 sm:flex-shrink-0">
                     {video.status === 'processing' && (
                       <span className="text-sm text-yellow-600 flex items-center gap-2">
                         <div className="animate-spin h-4 w-4 border-2 border-yellow-600 border-t-transparent rounded-full"></div>
