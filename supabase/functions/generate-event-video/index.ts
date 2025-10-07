@@ -262,7 +262,8 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
     
     const timestamp = Math.round(Date.now() / 1000);
     
-    // Create signature - Cloudinary requires params in alphabetical order
+    // Cloudinary signature format: just the params WITHOUT the keys
+    // Correct format: "timestamp_value" + secret, NOT "timestamp=timestamp_value" + secret
     const paramsToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(paramsToSign);
