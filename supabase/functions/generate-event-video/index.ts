@@ -255,29 +255,34 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       throw new Error("Cloudinary credentials not configured");
     }
 
-    // Upload title card to Cloudinary using FormData
-    const timestamp = Math.floor(Date.now() / 1000);
+    // Upload images directly to Cloudinary using unsigned upload (simpler approach)
+    console.log("Uploading title card to Cloudinary...");
     
+    // Upload title card
     const titleFormData = new FormData();
     titleFormData.append('file', titleImageUrl);
-    titleFormData.append('timestamp', timestamp.toString());
+    titleFormData.append('upload_preset', 'ml_default'); // Using Cloudinary's default unsigned preset
     titleFormData.append('api_key', CLOUDINARY_API_KEY);
-    
-    // Create signature for Cloudinary
-    const paramsToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(paramsToSign);
-    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-    const signature = Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    
-    titleFormData.append('signature', signature);
 
-    const titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    let titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: "POST",
       body: titleFormData
     });
+
+    // If unsigned fails, try basic auth upload
+    if (!titleCardUpload.ok) {
+      console.log("Unsigned upload failed, trying authenticated upload...");
+      const authFormData = new FormData();
+      authFormData.append('file', titleImageUrl);
+      
+      titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: "POST",
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)
+        },
+        body: authFormData
+      });
+    }
 
     if (!titleCardUpload.ok) {
       const errorText = await titleCardUpload.text();
@@ -305,27 +310,30 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       }
 
       const base64Data = await imageToBase64(fileData);
-      const photoTimestamp = Math.floor(Date.now() / 1000);
       
       const photoFormData = new FormData();
       photoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
-      photoFormData.append('timestamp', photoTimestamp.toString());
+      photoFormData.append('upload_preset', 'ml_default');
       photoFormData.append('api_key', CLOUDINARY_API_KEY);
-      
-      // Create signature
-      const photoParamsToSign = `timestamp=${photoTimestamp}${CLOUDINARY_API_SECRET}`;
-      const photoData = encoder.encode(photoParamsToSign);
-      const photoHashBuffer = await crypto.subtle.digest('SHA-1', photoData);
-      const photoSignature = Array.from(new Uint8Array(photoHashBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-      
-      photoFormData.append('signature', photoSignature);
 
-      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      let uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: "POST",
         body: photoFormData
       });
+
+      // If unsigned fails, try authenticated
+      if (!uploadResponse.ok) {
+        const authPhotoFormData = new FormData();
+        authPhotoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
+        
+        uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+          method: "POST",
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)
+          },
+          body: authPhotoFormData
+        });
+      }
 
       if (uploadResponse.ok) {
         const uploadData = await uploadResponse.json();
