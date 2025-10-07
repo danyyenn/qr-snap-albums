@@ -585,15 +585,70 @@ const EventDetail = () => {
       }
 
       console.log('Video generation response:', data);
+      const videoId = data?.videoId;
       
       toast({
         title: "Video Generation Started",
-        description: "Your video is being created. It will appear in the 'Event Videos' section below when ready (usually within a few minutes).",
+        description: "Your video is being created. Checking for completion...",
         duration: 8000,
       });
       
-      // Reload event data to show the processing video
-      loadEventData();
+      // Poll for video completion
+      if (videoId) {
+        let attempts = 0;
+        const maxAttempts = 60; // Check for up to 2 minutes
+        
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          
+          const { data: videoData, error: videoError } = await supabase
+            .from("event_videos")
+            .select("*")
+            .eq("id", videoId)
+            .single();
+          
+          console.log(`Polling attempt ${attempts}:`, videoData);
+          
+          if (videoError) {
+            console.error('Polling error:', videoError);
+            clearInterval(pollInterval);
+            setGeneratingVideo(false);
+            return;
+          }
+          
+          if (videoData?.status === 'completed') {
+            clearInterval(pollInterval);
+            setGeneratingVideo(false);
+            loadEventData();
+            toast({
+              title: "Video Ready!",
+              description: "Your event video has been generated successfully!",
+            });
+          } else if (videoData?.status === 'failed') {
+            clearInterval(pollInterval);
+            setGeneratingVideo(false);
+            const errorMsg = typeof videoData?.metadata === 'object' && videoData?.metadata !== null 
+              ? (videoData.metadata as any).error 
+              : "Unknown error occurred";
+            toast({
+              variant: "destructive",
+              title: "Video Generation Failed",
+              description: errorMsg || "Unknown error occurred",
+            });
+          } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setGeneratingVideo(false);
+            toast({
+              title: "Still Processing",
+              description: "Video generation is taking longer than expected. Please refresh the page in a few minutes.",
+            });
+          }
+        }, 2000); // Check every 2 seconds
+      } else {
+        // Fallback: just reload data
+        loadEventData();
+        setGeneratingVideo(false);
+      }
     } catch (error: any) {
       console.error('Video generation error:', error);
       
@@ -615,10 +670,10 @@ const EventDetail = () => {
         variant: "destructive",
         title: "Video Generation Failed",
         description: errorMessage,
-        duration: 10000, // Show for 10 seconds so user can read it
+        duration: 10000,
       });
-    } finally {
       setGeneratingVideo(false);
+    } finally {
       // Clear the URL params
       navigate(`/events/${id}`, { replace: true });
     }
