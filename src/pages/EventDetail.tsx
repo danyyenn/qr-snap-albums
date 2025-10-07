@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Video, Edit2, Check, X, Sparkles } from "lucide-react";
+import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Video, Edit2, Check, X, Sparkles, Pencil } from "lucide-react";
 import JSZip from "jszip";
 import {
   AlertDialog,
@@ -29,6 +29,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Event {
   id: string;
@@ -80,6 +81,9 @@ const EventDetail = () => {
   const [editingCode, setEditingCode] = useState(false);
   const [newUploadCode, setNewUploadCode] = useState("");
   const [savingCode, setSavingCode] = useState(false);
+  const [editDetailsOpen, setEditDetailsOpen] = useState(false);
+  const [editedEvent, setEditedEvent] = useState<Partial<Event>>({});
+  const [savingDetails, setSavingDetails] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -724,6 +728,72 @@ const EventDetail = () => {
     }
   };
 
+  const handleEditDetails = () => {
+    setEditedEvent({
+      name: event.name,
+      event_date: event.event_date,
+      location: event.location,
+      description: event.description,
+    });
+    setEditDetailsOpen(true);
+  };
+
+  const handleSaveDetails = async () => {
+    if (!editedEvent.name?.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Event name is required",
+      });
+      return;
+    }
+
+    if (!editedEvent.event_date) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Event date is required",
+      });
+      return;
+    }
+
+    setSavingDetails(true);
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({
+          name: editedEvent.name,
+          event_date: editedEvent.event_date,
+          location: editedEvent.location || "",
+          description: editedEvent.description || "",
+        })
+        .eq("id", event.id);
+
+      if (error) throw error;
+
+      setEvent({
+        ...event,
+        name: editedEvent.name,
+        event_date: editedEvent.event_date,
+        location: editedEvent.location || "",
+        description: editedEvent.description || "",
+      });
+      setEditDetailsOpen(false);
+      toast({
+        title: "Event Updated",
+        description: "Event details have been saved successfully",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setSavingDetails(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -772,6 +842,10 @@ const EventDetail = () => {
           </div>
           {isHost && (
             <div className="flex gap-2 sm:flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={handleEditDetails} className="w-full sm:w-auto">
+                <Pencil className="w-4 h-4 sm:mr-2" />
+                <span className="sm:inline">Edit Details</span>
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} className="w-full sm:w-auto">
                 <Settings className="w-4 h-4 sm:mr-2" />
                 <span className="sm:inline">Settings</span>
@@ -1193,6 +1267,77 @@ const EventDetail = () => {
                 checked={event?.is_public_gallery || false}
                 onCheckedChange={(checked) => handleSettingChange("is_public_gallery", checked)}
               />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDetailsOpen} onOpenChange={setEditDetailsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Event Details</DialogTitle>
+            <DialogDescription>
+              Update your event information
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="event-name">Event Name *</Label>
+              <Input
+                id="event-name"
+                value={editedEvent.name || ""}
+                onChange={(e) => setEditedEvent({ ...editedEvent, name: e.target.value })}
+                placeholder="Event name"
+                disabled={savingDetails}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-date">Event Date *</Label>
+              <Input
+                id="event-date"
+                type="date"
+                value={editedEvent.event_date || ""}
+                onChange={(e) => setEditedEvent({ ...editedEvent, event_date: e.target.value })}
+                disabled={savingDetails}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-location">Location</Label>
+              <Input
+                id="event-location"
+                value={editedEvent.location || ""}
+                onChange={(e) => setEditedEvent({ ...editedEvent, location: e.target.value })}
+                placeholder="Event location"
+                disabled={savingDetails}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-description">Description</Label>
+              <Textarea
+                id="event-description"
+                value={editedEvent.description || ""}
+                onChange={(e) => setEditedEvent({ ...editedEvent, description: e.target.value })}
+                placeholder="Event description"
+                disabled={savingDetails}
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button
+                onClick={handleSaveDetails}
+                disabled={savingDetails}
+                className="flex-1"
+              >
+                {savingDetails ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button
+                onClick={() => setEditDetailsOpen(false)}
+                disabled={savingDetails}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </DialogContent>
