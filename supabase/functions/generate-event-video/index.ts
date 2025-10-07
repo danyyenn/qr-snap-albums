@@ -114,7 +114,8 @@ serve(async (req) => {
     // For a 1-minute video at 3 seconds per photo, we need ~20 photos
     const targetPhotoCount = 20;
     
-    // Use AI with tool calling to analyze and rank photos
+    // Use AI to analyze photos and suggest best selections
+    // Using a simpler prompt-based approach instead of tool calling for better compatibility
     const analysisResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -126,46 +127,21 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are an expert photo curator for event videos. Analyze photos and select the best ones based on: composition, lighting, focus quality, emotional impact, variety, and story flow. Avoid duplicates and similar shots."
+            content: "You are an expert photo curator. Return ONLY a JSON object with two fields: selected_indices (array of numbers) and reasoning (string). No other text."
           },
           {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text: `I have ${imageData.length} event photos. I need you to select the best ${Math.min(targetPhotoCount, imageData.length)} photos for a 1-minute Instagram Reel. Consider variety, quality, and storytelling. Return the indices (0-based) of the selected photos in the order they should appear in the video.`
-              },
-              ...imageData.slice(0, 10).map((img: { data: string }) => ({ 
-                type: "image_url",
-                image_url: { url: img.data }
-              }))
-            ]
+            content: `Analyze these ${imageData.length} event photos and select the best ${Math.min(targetPhotoCount, imageData.length)} for a 1-minute Instagram Reel video. Consider: composition, lighting, quality, emotional impact, variety, and storytelling flow. Avoid duplicates.
+
+Return ONLY this JSON format:
+{
+  "selected_indices": [0, 2, 5, ...],
+  "reasoning": "brief explanation"
+}
+
+Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(targetPhotoCount, imageData.length)} indices.`
           }
-        ],
-        tools: [
-          {
-            type: "function",
-            name: "select_photos",
-            description: "Select the best photos for the video in the order they should appear",
-            parameters: {
-              type: "object",
-              properties: {
-                selected_indices: {
-                  type: "array",
-                  items: { type: "number" },
-                  description: "Array of photo indices (0-based) in the order they should appear in the video"
-                },
-                reasoning: {
-                  type: "string",
-                  description: "Brief explanation of selection criteria used"
-                }
-              },
-              required: ["selected_indices", "reasoning"],
-              additionalProperties: false
-            }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "select_photos" } }
+        ]
       }),
     });
 
@@ -176,19 +152,25 @@ serve(async (req) => {
     }
 
     const analysisData = await analysisResponse.json();
-    console.log("AI analysis response:", JSON.stringify(analysisData));
+    const aiContent = analysisData.choices?.[0]?.message?.content || "";
+    console.log("AI analysis response:", aiContent);
     
     let selectedIndices: number[] = [];
     let aiReasoning = "";
     
-    // Parse tool call response
-    const toolCalls = analysisData.choices?.[0]?.message?.tool_calls;
-    if (toolCalls && toolCalls.length > 0) {
-      const args = JSON.parse(toolCalls[0].function.arguments);
-      selectedIndices = args.selected_indices || [];
-      aiReasoning = args.reasoning || "";
-      console.log("AI selected photos:", selectedIndices);
-      console.log("AI reasoning:", aiReasoning);
+    // Parse JSON response from AI
+    try {
+      // Extract JSON from response (AI might add extra text)
+      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        selectedIndices = parsed.selected_indices || [];
+        aiReasoning = parsed.reasoning || "";
+        console.log("AI selected photos:", selectedIndices);
+        console.log("AI reasoning:", aiReasoning);
+      }
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", parseError);
     }
 
     // Fallback: if AI didn't select enough photos, use a smart sampling strategy

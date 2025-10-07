@@ -512,10 +512,26 @@ const EventDetail = () => {
       loadEventData();
     } catch (error: any) {
       console.error('Video generation error:', error);
+      
+      // Parse error message for better user feedback
+      let errorMessage = "Failed to generate video";
+      if (error.message) {
+        if (error.message.includes("429") || error.message.includes("rate limit")) {
+          errorMessage = "Too many requests. Please wait a moment and try again.";
+        } else if (error.message.includes("402") || error.message.includes("payment")) {
+          errorMessage = "AI credits needed. Please contact support.";
+        } else if (error.message.includes("400") || error.message.includes("AI")) {
+          errorMessage = "AI processing failed. Please try again or contact support.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to generate video",
+        title: "Video Generation Failed",
+        description: errorMessage,
+        duration: 10000, // Show for 10 seconds so user can read it
       });
     } finally {
       setGeneratingVideo(false);
