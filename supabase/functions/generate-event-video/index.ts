@@ -257,24 +257,12 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
     console.log("API key:", CLOUDINARY_API_KEY);
     console.log("API secret length:", CLOUDINARY_API_SECRET?.length);
 
-    // Upload using Cloudinary's authenticated upload - properly formatted
+    // Upload using unsigned upload (simpler, no signature needed)
     console.log("Uploading title card to Cloudinary...");
     
-    // Create proper signature for Cloudinary
-    const timestamp = Math.round(Date.now() / 1000);
-    const stringToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(stringToSign);
-    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-    const signature = Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
     const titleFormData = new FormData();
     titleFormData.append('file', titleImageUrl);
-    titleFormData.append('api_key', CLOUDINARY_API_KEY);
-    titleFormData.append('timestamp', timestamp.toString());
-    titleFormData.append('signature', signature);
+    titleFormData.append('upload_preset', 'ml_default'); // Use default unsigned preset
 
     const titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: "POST",
@@ -284,8 +272,6 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
     if (!titleCardUpload.ok) {
       const errorText = await titleCardUpload.text();
       console.error("Cloudinary upload failed:", errorText);
-      console.error("Signature used:", signature);
-      console.error("String to sign:", stringToSign);
       throw new Error(`Cloudinary upload failed: ${errorText}`);
     }
 
@@ -309,19 +295,10 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       }
 
       const base64Data = await imageToBase64(fileData);
-      const photoTimestamp = Math.round(Date.now() / 1000);
-      const photoStringToSign = `timestamp=${photoTimestamp}${CLOUDINARY_API_SECRET}`;
-      const photoData = encoder.encode(photoStringToSign);
-      const photoHashBuffer = await crypto.subtle.digest('SHA-1', photoData);
-      const photoSignature = Array.from(new Uint8Array(photoHashBuffer))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
       
       const photoFormData = new FormData();
       photoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
-      photoFormData.append('api_key', CLOUDINARY_API_KEY);
-      photoFormData.append('timestamp', photoTimestamp.toString());
-      photoFormData.append('signature', photoSignature);
+      photoFormData.append('upload_preset', 'ml_default'); // Use default unsigned preset
 
       const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: "POST",
