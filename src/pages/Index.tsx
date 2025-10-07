@@ -129,7 +129,7 @@ const Index = () => {
             />
             <BenefitCard
               icon={<Upload />}
-              title="No Limits"
+              title="Generous Storage"
               description="Up to 1,000 photos per event. Enough for even the biggest celebrations."
             />
             <BenefitCard
