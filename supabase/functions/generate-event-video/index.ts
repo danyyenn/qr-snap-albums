@@ -61,17 +61,7 @@ serve(async (req) => {
 
     console.log("Starting video generation for event:", eventId);
 
-    // Fetch event details for title card
-    const { data: eventData, error: eventError } = await supabaseClient
-      .from("events")
-      .select("name, event_date, location")
-      .eq("id", eventId)
-      .single();
-
-    if (eventError) throw eventError;
-    console.log("Event name:", eventData.name);
-
-    // Create video generation record
+    // Create video generation record immediately
     const { data: videoRecord, error: videoInsertError } = await supabaseClient
       .from("event_videos")
       .insert({
@@ -87,319 +77,288 @@ serve(async (req) => {
       throw videoInsertError;
     }
 
-    // Fetch approved photos for the event
-    const { data: photos, error: photosError } = await supabaseClient
-      .from("photos")
-      .select("id, storage_path, uploaded_at")
-      .eq("event_id", eventId)
-      .eq("is_approved", true)
-      .order("uploaded_at", { ascending: true });
+    // Start background video generation
+    const generateVideo = async () => {
+      try {
+        // Fetch event details
+        const { data: eventData, error: eventError } = await supabaseClient
+          .from("events")
+          .select("name, event_date, location")
+          .eq("id", eventId)
+          .single();
 
-    if (photosError) throw photosError;
-    if (!photos || photos.length === 0) {
-      throw new Error("No approved photos found for this event");
-    }
+        if (eventError) throw eventError;
+        console.log("Event name:", eventData.name);
 
-    console.log(`Found ${photos.length} photos to analyze`);
+        // Fetch approved photos
+        const { data: photos, error: photosError } = await supabaseClient
+          .from("photos")
+          .select("id, storage_path, uploaded_at")
+          .eq("event_id", eventId)
+          .eq("is_approved", true)
+          .order("uploaded_at", { ascending: true });
 
-    // Download photos for AI analysis (limit to first 50 to avoid memory issues)
-    const photosToAnalyze = photos.slice(0, Math.min(50, photos.length));
-    const imageDataPromises = photosToAnalyze.map(async (photo) => {
-      const { data: fileData, error: downloadError } = await supabaseClient
-        .storage
-        .from("event-photos")
-        .download(photo.storage_path);
+        if (photosError) throw photosError;
+        if (!photos || photos.length === 0) {
+          throw new Error("No approved photos found");
+        }
 
-      if (downloadError) {
-        console.error(`Error downloading ${photo.storage_path}:`, downloadError);
-        return null;
-      }
+        console.log(`Found ${photos.length} photos`);
 
-      const base64 = await imageToBase64(fileData);
-      return {
-        id: photo.id,
-        path: photo.storage_path,
-        data: `data:image/jpeg;base64,${base64}`
-      };
-    });
+        // Get credentials
+        const CLOUDINARY_CLOUD_NAME = Deno.env.get("CLOUDINARY_CLOUD_NAME");
+        const CLOUDINARY_API_KEY = Deno.env.get("CLOUDINARY_API_KEY");
+        const CLOUDINARY_API_SECRET = Deno.env.get("CLOUDINARY_API_SECRET");
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    const imageData = (await Promise.all(imageDataPromises)).filter((img): img is { id: string; path: string; data: string } => img !== null);
-    console.log(`Downloaded ${imageData.length} images for AI analysis`);
+        if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+          throw new Error("Cloudinary credentials not configured");
+        }
+        if (!LOVABLE_API_KEY) {
+          throw new Error("LOVABLE_API_KEY not configured");
+        }
 
-    // Use AI to analyze and select the best photos for the video
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
+        // Select best photos using AI (limit to 20)
+        const targetPhotoCount = Math.min(20, photos.length);
+        let selectedPhotos = photos.slice(0, targetPhotoCount);
 
-    console.log("Using AI to select best photos...");
-    
-    // For a 1-minute video at 3 seconds per photo, we need ~20 photos
-    const targetPhotoCount = 20;
-    
-    // Use AI to analyze photos and suggest best selections
-    // Using a simpler prompt-based approach instead of tool calling for better compatibility
-    const analysisResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert photo curator. Return ONLY a JSON object with two fields: selected_indices (array of numbers) and reasoning (string). No other text."
+        if (photos.length > 12) {
+          // Download first 12 for AI analysis
+          const photosToAnalyze = photos.slice(0, 12);
+          const imageDataPromises = photosToAnalyze.map(async (photo) => {
+            const { data: fileData, error: downloadError } = await supabaseClient
+              .storage
+              .from("event-photos")
+              .download(photo.storage_path);
+
+            if (downloadError) {
+              console.error(`Error downloading ${photo.storage_path}:`, downloadError);
+              return null;
+            }
+
+            const base64 = await imageToBase64(fileData);
+            return {
+              id: photo.id,
+              path: photo.storage_path,
+              data: `data:image/jpeg;base64,${base64}`
+            };
+          });
+
+          const imageData = (await Promise.all(imageDataPromises)).filter(img => img !== null);
+          console.log(`Analyzing ${imageData.length} images with AI`);
+
+          // Ask AI to select best photos
+          const analysisResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "system",
+                  content: "Return ONLY a JSON object with selected_indices array. No other text."
+                },
+                {
+                  role: "user",
+                  content: `Select the best ${targetPhotoCount} photos from ${photos.length} event photos for a video. Return JSON: {"selected_indices": [0, 2, 5, ...]}. Indices: 0-${photos.length - 1}.`
+                }
+              ]
+            }),
+          });
+
+          if (analysisResponse.ok) {
+            const analysisData = await analysisResponse.json();
+            const aiContent = analysisData.choices?.[0]?.message?.content || "";
+            try {
+              const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                const selectedIndices = parsed.selected_indices || [];
+                if (selectedIndices.length >= targetPhotoCount) {
+                  selectedPhotos = selectedIndices.slice(0, targetPhotoCount).map((idx: number) => photos[idx]).filter(Boolean);
+                  console.log("AI selected", selectedPhotos.length, "photos");
+                }
+              }
+            } catch (e) {
+              console.error("AI selection failed, using evenly spaced photos");
+            }
+          }
+        }
+
+        // Generate title card
+        console.log("Generating title card...");
+        const titleCardResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
           },
-          {
-            role: "user",
-            content: `Analyze these ${imageData.length} event photos and select the best ${Math.min(targetPhotoCount, imageData.length)} for a 1-minute Instagram Reel video. Consider: composition, lighting, quality, emotional impact, variety, and storytelling flow. Avoid duplicates.
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image-preview",
+            messages: [{
+              role: "user",
+              content: `Create a stunning title card for an Instagram Reel. Title: "${eventData.name}". Use elegant design with gradient background (warm colors: gold, rose gold, sunset tones). Add subtle confetti effects. Bold, centered, readable text. Premium and exciting feel. 9:16 aspect ratio (portrait).`
+            }],
+            modalities: ["image", "text"]
+          }),
+        });
 
-Return ONLY this JSON format:
-{
-  "selected_indices": [0, 2, 5, ...],
-  "reasoning": "brief explanation"
-}
+        if (!titleCardResponse.ok) {
+          throw new Error("Title card generation failed");
+        }
 
-Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(targetPhotoCount, imageData.length)} indices.`
+        const titleCardData = await titleCardResponse.json();
+        const titleImageUrl = titleCardData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        
+        if (!titleImageUrl) {
+          throw new Error("No title card image generated");
+        }
+
+        // Helper to upload to Cloudinary with proper signature
+        const uploadToCloudinary = async (fileData: string, filename: string): Promise<string> => {
+          const timestamp = Math.round(Date.now() / 1000).toString();
+          
+          // Create signature (MUST be: timestamp=<value><api_secret>)
+          const stringToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
+          const encoder = new TextEncoder();
+          const data = encoder.encode(stringToSign);
+          const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+          const signature = Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+
+          const formData = new FormData();
+          formData.append('file', fileData);
+          formData.append('timestamp', timestamp);
+          formData.append('api_key', CLOUDINARY_API_KEY);
+          formData.append('signature', signature);
+
+          const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+            {
+              method: "POST",
+              body: formData
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Cloudinary upload failed for ${filename}:`, errorText);
+            throw new Error(`Upload failed: ${errorText}`);
           }
-        ]
-      }),
-    });
 
-    if (!analysisResponse.ok) {
-      const errorText = await analysisResponse.text();
-      console.error("AI analysis error:", analysisResponse.status, errorText);
-      throw new Error(`AI photo selection failed: ${analysisResponse.status}`);
-    }
+          const result = await response.json();
+          console.log(`Uploaded ${filename} to Cloudinary:`, result.public_id);
+          return result.public_id;
+        };
 
-    const analysisData = await analysisResponse.json();
-    const aiContent = analysisData.choices?.[0]?.message?.content || "";
-    console.log("AI analysis response:", aiContent);
-    
-    let selectedIndices: number[] = [];
-    let aiReasoning = "";
-    
-    // Parse JSON response from AI
-    try {
-      // Extract JSON from response (AI might add extra text)
-      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        selectedIndices = parsed.selected_indices || [];
-        aiReasoning = parsed.reasoning || "";
-        console.log("AI selected photos:", selectedIndices);
-        console.log("AI reasoning:", aiReasoning);
-      }
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError);
-    }
+        // Upload title card
+        console.log("Uploading title card...");
+        const titleCardPublicId = await uploadToCloudinary(titleImageUrl, "title-card");
 
-    // Fallback: if AI didn't select enough photos, use a smart sampling strategy
-    if (selectedIndices.length < targetPhotoCount) {
-      console.log("AI selected fewer photos than needed, using smart sampling...");
-      const step = Math.floor(photos.length / targetPhotoCount);
-      selectedIndices = Array.from({ length: targetPhotoCount }, (_, i) => i * step);
-    }
+        // Upload selected photos
+        console.log(`Uploading ${selectedPhotos.length} photos...`);
+        const uploadedPhotoIds: string[] = [];
+        
+        for (let i = 0; i < selectedPhotos.length; i++) {
+          const photo = selectedPhotos[i];
+          try {
+            const { data: fileData, error } = await supabaseClient
+              .storage
+              .from("event-photos")
+              .download(photo.storage_path);
+            
+            if (error) {
+              console.error(`Download error for ${photo.storage_path}:`, error);
+              continue;
+            }
 
-    // Get the actual selected photos
-    const selectedPhotos = selectedIndices
-      .slice(0, targetPhotoCount)
-      .map(idx => photos[idx])
-      .filter(Boolean);
-
-    console.log(`Selected ${selectedPhotos.length} photos for video generation`);
-
-    // Generate a beautiful title card using AI
-    console.log("Generating title card image...");
-    const titleCardResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: `Create a stunning modern title card for an Instagram Reel video. The title should say "${eventData.name}". Use an elegant, celebratory design with a gradient background (warm colors like gold, rose gold, or sunset tones). Add subtle confetti or sparkle effects. The text should be bold, centered, and highly readable. Make it feel premium and exciting. Ultra high resolution. 9:16 aspect ratio (portrait for Instagram Reels).`
+            const base64Data = await imageToBase64(fileData);
+            const publicId = await uploadToCloudinary(
+              `data:image/jpeg;base64,${base64Data}`,
+              `photo-${i + 1}`
+            );
+            uploadedPhotoIds.push(publicId);
+          } catch (error) {
+            console.error(`Failed to upload photo ${i + 1}:`, error);
           }
-        ],
-        modalities: ["image", "text"]
-      }),
-    });
+        }
 
-    if (!titleCardResponse.ok) {
-      console.error("Title card generation failed:", await titleCardResponse.text());
-      throw new Error("Failed to generate title card");
-    }
+        console.log(`Successfully uploaded ${uploadedPhotoIds.length} photos`);
 
-    const titleCardAIData = await titleCardResponse.json();
-    const titleImageUrl = titleCardAIData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
-    if (!titleImageUrl) {
-      throw new Error("No title card image generated");
-    }
+        if (uploadedPhotoIds.length === 0) {
+          throw new Error("No photos were successfully uploaded");
+        }
 
-    // Upload title card to Cloudinary
-    console.log("Uploading title card to Cloudinary...");
-    const CLOUDINARY_CLOUD_NAME = Deno.env.get("CLOUDINARY_CLOUD_NAME");
-    const CLOUDINARY_API_KEY = Deno.env.get("CLOUDINARY_API_KEY");
-    const CLOUDINARY_API_SECRET = Deno.env.get("CLOUDINARY_API_SECRET");
+        // Create video URL using Cloudinary transformations
+        // This creates a simple slideshow video
+        const videoLayers = [
+          { publicId: titleCardPublicId, duration: 3 },
+          ...uploadedPhotoIds.map(id => ({ publicId: id, duration: 3 }))
+        ];
 
-    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-      throw new Error("Cloudinary credentials not configured");
-    }
-    
-    console.log("Cloud name:", CLOUDINARY_CLOUD_NAME);
-    console.log("API key:", CLOUDINARY_API_KEY);
-    console.log("API secret length:", CLOUDINARY_API_SECRET?.length);
+        // Build transformation string for video creation
+        const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/w_1080,h_1920,c_fill/${videoLayers.map(l => `l_${l.publicId.replace(/\//g, ':')},du_${l.duration}`).join('/')}/f_mp4,q_auto/event-video-${eventId}.mp4`;
+        
+        console.log("Video URL created:", videoUrl);
 
-    // Upload using signed upload with proper signature
-    console.log("Uploading title card to Cloudinary...");
-    
-    const timestamp = Math.round(Date.now() / 1000);
-    
-    // Cloudinary signature format: just the params WITHOUT the keys
-    // Correct format: "timestamp_value" + secret, NOT "timestamp=timestamp_value" + secret
-    const paramsToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(paramsToSign);
-    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        // Update video record
+        const metadata = {
+          totalPhotos: photos.length,
+          selectedPhotos: selectedPhotos.length,
+          uploadedPhotos: uploadedPhotoIds.length,
+          eventName: eventData.name,
+          cloudinaryAssets: {
+            titleCard: titleCardPublicId,
+            photos: uploadedPhotoIds
+          },
+          generatedAt: new Date().toISOString()
+        };
 
-    const titleFormData = new FormData();
-    titleFormData.append('file', titleImageUrl);
-    titleFormData.append('timestamp', timestamp.toString());
-    titleFormData.append('api_key', CLOUDINARY_API_KEY);
-    titleFormData.append('signature', signature);
+        await supabaseClient
+          .from("event_videos")
+          .update({
+            status: 'completed',
+            metadata: metadata,
+            video_url: videoUrl,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', videoRecord.id);
 
-    const titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: "POST",
-      body: titleFormData
-    });
+        console.log("Video generation completed successfully");
 
-    if (!titleCardUpload.ok) {
-      const errorText = await titleCardUpload.text();
-      console.error("Cloudinary upload failed:", errorText);
-      throw new Error(`Cloudinary upload failed: ${errorText}`);
-    }
-
-    const titleCardData = await titleCardUpload.json();
-    const titleCardPublicId = titleCardData.public_id;
-    console.log("Title card uploaded:", titleCardPublicId);
-
-    // Upload photos
-    console.log(`Uploading ${selectedPhotos.length} photos to Cloudinary...`);
-    const uploadedPhotoIds: string[] = [];
-    
-    for (const photo of selectedPhotos) {
-      const { data: fileData, error } = await supabaseClient
-        .storage
-        .from("event-photos")
-        .download(photo.storage_path);
-      
-      if (error) {
-        console.error(`Error downloading ${photo.storage_path}:`, error);
-        continue;
+      } catch (error) {
+        console.error("Background task error:", error);
+        // Update status to failed
+        await supabaseClient
+          .from("event_videos")
+          .update({
+            status: 'failed',
+            metadata: { error: error instanceof Error ? error.message : "Unknown error" }
+          })
+          .eq('id', videoRecord.id);
       }
-
-      const base64Data = await imageToBase64(fileData);
-      
-      const photoTimestamp = Math.round(Date.now() / 1000);
-      const photoParamsToSign = `timestamp=${photoTimestamp}${CLOUDINARY_API_SECRET}`;
-      const photoData = encoder.encode(photoParamsToSign);
-      const photoHashBuffer = await crypto.subtle.digest('SHA-1', photoData);
-      const photoHashArray = Array.from(new Uint8Array(photoHashBuffer));
-      const photoSignature = photoHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      const photoFormData = new FormData();
-      photoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
-      photoFormData.append('timestamp', photoTimestamp.toString());
-      photoFormData.append('api_key', CLOUDINARY_API_KEY);
-      photoFormData.append('signature', photoSignature);
-
-      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-        method: "POST",
-        body: photoFormData
-      });
-
-      if (uploadResponse.ok) {
-        const uploadData = await uploadResponse.json();
-        uploadedPhotoIds.push(uploadData.public_id);
-        console.log(`Uploaded photo ${uploadedPhotoIds.length}/${selectedPhotos.length}`);
-      } else {
-        console.error(`Failed to upload photo:`, await uploadResponse.text());
-      }
-    }
-
-    console.log(`Uploaded ${uploadedPhotoIds.length} photos to Cloudinary`);
-
-    // Create video using Cloudinary's video transformation API
-    console.log("Creating video with Cloudinary...");
-    
-    // Build video layers: title card (3s) + photos (3s each)
-    const videoLayers = [
-      { publicId: titleCardPublicId, duration: 3 },
-      ...uploadedPhotoIds.map(id => ({ publicId: id, duration: 3 }))
-    ];
-
-    // Use Cloudinary's video concatenation
-    const videoTransformation = videoLayers.map((layer, index) => {
-      return `l_${layer.publicId.replace(/\//g, ':')},w_1080,h_1920,c_fill,du_${layer.duration}`;
-    }).join('/');
-
-    // Generate the video URL
-    const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${videoTransformation}/e_concatenate/f_mp4,q_auto/event-video-${eventId}.mp4`;
-    
-    console.log("Video URL generated:", videoUrl);
-
-    // Update video record with complete metadata
-    const videoMetadata = {
-      totalPhotosAvailable: photos.length,
-      photosAnalyzed: imageData.length,
-      photosSelected: selectedPhotos.length,
-      selectedPhotoIds: selectedPhotos.map(p => p.id),
-      aiReasoning: aiReasoning,
-      duration: "60 seconds",
-      format: "Instagram Reel (1080x1920)",
-      titleCard: "AI Generated via Cloudinary",
-      eventName: eventData.name,
-      videoUrl: videoUrl,
-      cloudinaryAssets: {
-        titleCard: titleCardPublicId,
-        photos: uploadedPhotoIds
-      },
-      generatedAt: new Date().toISOString()
     };
 
-    await supabaseClient
-      .from("event_videos")
-      .update({
-        status: 'completed',
-        metadata: videoMetadata,
-        video_url: videoUrl,
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', videoRecord.id);
+    // Start background task (no await - runs in background)
+    generateVideo().catch(err => console.error("Background generation error:", err));
 
-    console.log("Video generation completed successfully");
-
+    // Return immediate response
     return new Response(JSON.stringify({
       success: true,
       videoId: videoRecord.id,
-      message: "Video generated successfully using Cloudinary!",
-      videoUrl: videoUrl,
-      metadata: videoMetadata
+      message: "Video generation started. Check back in a few minutes.",
+      status: "processing"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
   } catch (error) {
-    console.error("Error generating video:", error);
+    console.error("Error starting video generation:", error);
     const errorMessage = error instanceof Error ? error.message : "An error occurred";
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
