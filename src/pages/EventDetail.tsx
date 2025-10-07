@@ -1165,21 +1165,52 @@ const EventDetail = () => {
                         {video.video_url && (
                           <div className="flex gap-2 mt-2 sm:mt-0">
                             <Button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (video.video_url) {
-                                  // If it's a base64 image, download it
-                                  if (video.video_url.startsWith('data:image')) {
-                                    const link = document.createElement('a');
-                                    link.href = video.video_url;
-                                    link.download = `${event.name}-title-card.png`;
-                                    link.click();
+                                  try {
+                                    // Parse the slideshow data
+                                    const slideshowData = JSON.parse(video.video_url);
+                                    
+                                    // Download all images in the slideshow
+                                    for (let i = 0; i < slideshowData.length; i++) {
+                                      const slide = slideshowData[i];
+                                      
+                                      // Handle base64 images (title card)
+                                      if (slide.url.startsWith('data:image')) {
+                                        const link = document.createElement('a');
+                                        link.href = slide.url;
+                                        link.download = `${event.name}-${slide.type === 'title' ? 'title-card' : `photo-${i}`}.png`;
+                                        link.click();
+                                        await new Promise(resolve => setTimeout(resolve, 500));
+                                      } else {
+                                        // Handle regular URLs (photos from storage)
+                                        try {
+                                          const response = await fetch(slide.url);
+                                          const blob = await response.blob();
+                                          const url = URL.createObjectURL(blob);
+                                          const link = document.createElement('a');
+                                          link.href = url;
+                                          link.download = `${event.name}-photo-${i}.jpg`;
+                                          link.click();
+                                          URL.revokeObjectURL(url);
+                                          await new Promise(resolve => setTimeout(resolve, 500));
+                                        } catch (err) {
+                                          console.error(`Failed to download image ${i}:`, err);
+                                        }
+                                      }
+                                    }
+                                    
                                     toast({
                                       title: "Downloaded",
-                                      description: "Title card image downloaded",
+                                      description: `${slideshowData.length} images downloaded`,
                                     });
-                                  } else {
-                                    // Otherwise open the URL
-                                    window.open(video.video_url, '_blank');
+                                  } catch (error) {
+                                    console.error('Download error:', error);
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Download Failed",
+                                      description: "Unable to download slideshow images",
+                                    });
                                   }
                                 }
                               }}
@@ -1187,7 +1218,7 @@ const EventDetail = () => {
                               variant="outline"
                             >
                               <Download className="w-4 h-4 mr-2" />
-                              Download
+                              Download All
                             </Button>
                           </div>
                         )}
