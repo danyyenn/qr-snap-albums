@@ -23,6 +23,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [claimCode, setClaimCode] = useState(searchParams.get("code") || "");
+  const needsCode = searchParams.get("needsCode") === "true";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -70,6 +71,16 @@ const Auth = () => {
     e.preventDefault();
     if (!validateInputs(true)) return;
 
+    // If coming from "Redeem Etsy Purchase", require claim code
+    if (needsCode && !claimCode.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Claim Code Required",
+        description: "Please enter your Etsy claim code to create a host account.",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -85,18 +96,34 @@ const Auth = () => {
 
       if (error) throw error;
 
-      if (data.user && claimCode) {
+      if (data.user && claimCode.trim()) {
         try {
-          await supabase.rpc("claim_host_code", {
-            p_code: claimCode,
+          const { error: claimError } = await supabase.rpc("claim_host_code", {
+            p_code: claimCode.trim(),
             p_user_id: data.user.id,
           });
+          
+          if (claimError) {
+            console.error('Claim error:', claimError);
+            throw new Error(claimError.message || "Invalid or already used claim code");
+          }
           
           toast({
             title: "Success!",
             description: "Account created and claim code verified! You're now a host.",
           });
-        } catch (claimError) {
+        } catch (claimError: any) {
+          // If claim fails and it was required, show error and stop
+          if (needsCode) {
+            toast({
+              variant: "destructive",
+              title: "Claim Code Error",
+              description: claimError.message || "Invalid or already used claim code. Please contact support.",
+            });
+            setLoading(false);
+            return;
+          }
+          // If claim code was optional, just warn
           toast({
             variant: "destructive",
             title: "Claim Code Error",
@@ -237,16 +264,23 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="claim-code">Claim Code (Optional)</Label>
+                  <Label htmlFor="claim-code">
+                    {needsCode ? "Etsy Claim Code *" : "Claim Code (Optional)"}
+                  </Label>
                   <Input
                     id="claim-code"
                     type="text"
                     placeholder="From your Etsy purchase"
                     value={claimCode}
-                    onChange={(e) => setClaimCode(e.target.value)}
+                    onChange={(e) => setClaimCode(e.target.value.toUpperCase())}
+                    required={needsCode}
+                    className="uppercase"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Enter your claim code from Etsy to become a host
+                    {needsCode 
+                      ? "Enter your claim code from Etsy to activate your host account"
+                      : "Enter your claim code from Etsy to become a host"
+                    }
                   </p>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>

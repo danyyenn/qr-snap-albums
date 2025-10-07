@@ -47,7 +47,7 @@ const Index = () => {
                   Get Started Free
                 </Button>
               </Link>
-              <Link to="/auth?mode=signup">
+              <Link to="/auth?mode=signup&needsCode=true">
                 <Button variant="glass" size="xl">
                   Redeem Etsy Purchase
                 </Button>
