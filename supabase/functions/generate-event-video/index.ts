@@ -255,23 +255,46 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       throw new Error("Cloudinary credentials not configured");
     }
 
-    // Upload title card
+    // Helper to create Cloudinary signature for signed uploads
+    const createSignature = (paramsToSign: Record<string, any>) => {
+      const sortedParams = Object.keys(paramsToSign)
+        .sort()
+        .map(key => `${key}=${paramsToSign[key]}`)
+        .join('&');
+      
+      const encoder = new TextEncoder();
+      const data = encoder.encode(sortedParams + CLOUDINARY_API_SECRET);
+      return crypto.subtle.digest('SHA-256', data).then(hash => {
+        return Array.from(new Uint8Array(hash))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+      });
+    };
+
+    // Upload title card with signed upload
+    const timestamp = Math.floor(Date.now() / 1000);
+    const titleParams = {
+      timestamp,
+      folder: "event-videos"
+    };
+    const titleSignature = await createSignature(titleParams);
+
+    const titleFormData = new FormData();
+    titleFormData.append('file', titleImageUrl);
+    titleFormData.append('timestamp', timestamp.toString());
+    titleFormData.append('folder', 'event-videos');
+    titleFormData.append('api_key', CLOUDINARY_API_KEY);
+    titleFormData.append('signature', titleSignature);
+
     const titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: "POST",
-      body: JSON.stringify({
-        file: titleImageUrl,
-        upload_preset: "ml_default",
-        folder: "event-videos"
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Basic ${btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)}`
-      }
+      body: titleFormData
     });
 
     if (!titleCardUpload.ok) {
-      console.error("Failed to upload title card:", await titleCardUpload.text());
-      throw new Error("Failed to upload title card to Cloudinary");
+      const errorText = await titleCardUpload.text();
+      console.error("Failed to upload title card:", errorText);
+      throw new Error(`Failed to upload title card to Cloudinary: ${errorText}`);
     }
 
     const titleCardData = await titleCardUpload.json();
@@ -294,22 +317,32 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       }
 
       const base64Data = await imageToBase64(fileData);
+      const photoTimestamp = Math.floor(Date.now() / 1000);
+      const photoParams = {
+        timestamp: photoTimestamp,
+        folder: "event-videos"
+      };
+      const photoSignature = await createSignature(photoParams);
+
+      const photoFormData = new FormData();
+      photoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
+      photoFormData.append('timestamp', photoTimestamp.toString());
+      photoFormData.append('folder', 'event-videos');
+      photoFormData.append('api_key', CLOUDINARY_API_KEY);
+      photoFormData.append('signature', photoSignature);
+
       const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: "POST",
-        body: JSON.stringify({
-          file: `data:image/jpeg;base64,${base64Data}`,
-          upload_preset: "ml_default",
-          folder: "event-videos"
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Basic ${btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)}`
-        }
+        body: photoFormData
       });
 
       if (uploadResponse.ok) {
         const uploadData = await uploadResponse.json();
         uploadedPhotoIds.push(uploadData.public_id);
+        console.log(`Uploaded photo ${uploadedPhotoIds.length}/${selectedPhotos.length}`);
+      } else {
+        const errorText = await uploadResponse.text();
+        console.error(`Failed to upload photo:`, errorText);
       }
     }
 
