@@ -1,1 +1,7 @@
 project_id = "rtjeyerntvkamyovmlke"
+
+[functions.create-video-payment]
+verify_jwt = true
+
+[functions.generate-event-video]
+verify_jwt = true

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown } from "lucide-react";
+import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Video } from "lucide-react";
 import JSZip from "jszip";
 import {
   AlertDialog,
@@ -56,6 +56,7 @@ const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [event, setEvent] = useState<Event | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,11 +64,23 @@ const EventDetail = () => {
   const [downloading, setDownloading] = useState(false);
   const [deletePhotoId, setDeletePhotoId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [generatingVideo, setGeneratingVideo] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadEventData();
-  }, [id]);
+    
+    // Check for video payment success
+    const videoStatus = searchParams.get('video');
+    if (videoStatus === 'success') {
+      handleVideoPaymentSuccess();
+    } else if (videoStatus === 'cancelled') {
+      toast({
+        title: "Payment Cancelled",
+        description: "Video generation was not started.",
+      });
+    }
+  }, [id, searchParams]);
 
   const loadEventData = async () => {
     try {
@@ -421,6 +434,74 @@ const EventDetail = () => {
     setDeletePhotoId(photoId);
   };
 
+  const handleVideoPaymentSuccess = async () => {
+    if (!id) return;
+    
+    setGeneratingVideo(true);
+    toast({
+      title: "Payment Successful",
+      description: "Generating your event video...",
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-event-video', {
+        body: { 
+          eventId: id,
+          sessionId: searchParams.get('session_id') || ''
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Video Generation Started",
+        description: "Your video is being created. This may take a few minutes.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to generate video",
+      });
+    } finally {
+      setGeneratingVideo(false);
+      // Clear the URL params
+      navigate(`/events/${id}`, { replace: true });
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!id || !isHost) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Required",
+          description: "Please sign in to generate videos",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-video-payment', {
+        body: { eventId: id }
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create payment session",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -550,15 +631,26 @@ const EventDetail = () => {
                   </div>
                 )}
                 {isHost && (
-                  <Button
-                    onClick={handleDownloadAll}
-                    disabled={downloading || photos.filter(p => p.is_approved).length === 0}
-                    variant="hero"
-                    className="w-full mt-4"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    {downloading ? "Downloading..." : "Download All"}
-                  </Button>
+                  <>
+                    <Button
+                      onClick={handleDownloadAll}
+                      disabled={downloading || photos.filter(p => p.is_approved).length === 0}
+                      variant="hero"
+                      className="w-full mt-4"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      {downloading ? "Downloading..." : "Download All"}
+                    </Button>
+                    <Button
+                      onClick={handleGenerateVideo}
+                      disabled={generatingVideo || photos.filter(p => p.is_approved).length < 3}
+                      variant="outline"
+                      className="w-full mt-2"
+                    >
+                      <Video className="w-4 h-4 mr-2" />
+                      {generatingVideo ? "Processing..." : "Generate Video (£3)"}
+                    </Button>
+                  </>
                 )}
               </div>
             </CardContent>
