@@ -255,34 +255,17 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       throw new Error("Cloudinary credentials not configured");
     }
 
-    // Upload images directly to Cloudinary using unsigned upload (simpler approach)
+    // Upload title card to Cloudinary using authenticated upload (no preset needed)
     console.log("Uploading title card to Cloudinary...");
     
-    // Upload title card
     const titleFormData = new FormData();
     titleFormData.append('file', titleImageUrl);
-    titleFormData.append('upload_preset', 'ml_default'); // Using Cloudinary's default unsigned preset
     titleFormData.append('api_key', CLOUDINARY_API_KEY);
 
-    let titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    const titleCardUpload = await fetch(`https://${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}@api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: "POST",
       body: titleFormData
     });
-
-    // If unsigned fails, try basic auth upload
-    if (!titleCardUpload.ok) {
-      console.log("Unsigned upload failed, trying authenticated upload...");
-      const authFormData = new FormData();
-      authFormData.append('file', titleImageUrl);
-      
-      titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-        method: "POST",
-        headers: {
-          'Authorization': 'Basic ' + btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)
-        },
-        body: authFormData
-      });
-    }
 
     if (!titleCardUpload.ok) {
       const errorText = await titleCardUpload.text();
@@ -313,27 +296,12 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       
       const photoFormData = new FormData();
       photoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
-      photoFormData.append('upload_preset', 'ml_default');
       photoFormData.append('api_key', CLOUDINARY_API_KEY);
 
-      let uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      const uploadResponse = await fetch(`https://${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}@api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: "POST",
         body: photoFormData
       });
-
-      // If unsigned fails, try authenticated
-      if (!uploadResponse.ok) {
-        const authPhotoFormData = new FormData();
-        authPhotoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
-        
-        uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-          method: "POST",
-          headers: {
-            'Authorization': 'Basic ' + btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)
-          },
-          body: authPhotoFormData
-        });
-      }
 
       if (uploadResponse.ok) {
         const uploadData = await uploadResponse.json();
