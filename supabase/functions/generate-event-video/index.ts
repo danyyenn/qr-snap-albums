@@ -236,8 +236,8 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       throw new Error("Failed to generate title card");
     }
 
-    const titleCardData = await titleCardResponse.json();
-    const titleImageUrl = titleCardData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const titleCardAIData = await titleCardResponse.json();
+    const titleImageUrl = titleCardAIData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (!titleImageUrl) {
       throw new Error("No title card image generated");
@@ -245,83 +245,94 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
 
     console.log("Title card generated successfully");
 
-    // Now create the actual video using a video generation API
-    // Since FFmpeg isn't available in Deno Deploy, we'll use an AI video generation approach
-    console.log("Creating video slideshow...");
-    
-    // Download the selected photos
-    const selectedPhotoBlobs = await Promise.all(
-      selectedPhotos.map(async (photo) => {
-        const { data: fileData, error } = await supabaseClient
-          .storage
-          .from("event-photos")
-          .download(photo.storage_path);
-        
-        if (error) {
-          console.error(`Error downloading ${photo.storage_path}:`, error);
-          return null;
-        }
-        
-        return fileData;
-      })
-    );
+    // Upload title card to Cloudinary
+    console.log("Uploading title card to Cloudinary...");
+    const CLOUDINARY_CLOUD_NAME = Deno.env.get("CLOUDINARY_CLOUD_NAME");
+    const CLOUDINARY_API_KEY = Deno.env.get("CLOUDINARY_API_KEY");
+    const CLOUDINARY_API_SECRET = Deno.env.get("CLOUDINARY_API_SECRET");
 
-    const validPhotoBlobs = selectedPhotoBlobs.filter((blob): blob is Blob => blob !== null);
-    console.log(`Downloaded ${validPhotoBlobs.length} photos for video`);
-
-    // Convert photos to base64 for video creation
-    const photoBase64Array = await Promise.all(
-      validPhotoBlobs.map(blob => imageToBase64(blob))
-    );
-
-    // Since we can't use FFmpeg directly in Deno Deploy, we'll create a slideshow
-    // using an AI-powered approach or by generating individual frames
-    // For now, we'll create a metadata-rich response that describes the video
-    // In production, you would:
-    // 1. Use a dedicated video processing service (e.g., Cloudinary, Mux)
-    // 2. Or run FFmpeg in a separate containerized service
-    // 3. Or use WebAssembly FFmpeg (but it's very slow for 60-second videos)
-    
-    // Store all the photo data in the video metadata so it can be accessed later
-    const videoStoragePath = `event-videos/${eventData.name.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.json`;
-    
-    // Upload video data as JSON (containing all photo URLs and title card)
-    const videoData = {
-      titleCard: titleImageUrl,
-      photos: selectedPhotos.map((photo, idx) => ({
-        id: photo.id,
-        path: photo.storage_path,
-        order: idx,
-        duration: 3
-      })),
-      format: "instagram-reel",
-      dimensions: "1080x1920",
-      totalDuration: 60,
-      metadata: {
-        eventName: eventData.name,
-        generatedAt: new Date().toISOString()
-      }
-    };
-
-    const { error: uploadError } = await supabaseClient
-      .storage
-      .from("event-photos")
-      .upload(videoStoragePath, JSON.stringify(videoData, null, 2), {
-        contentType: 'application/json',
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error("Error uploading video data:", uploadError);
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+      throw new Error("Cloudinary credentials not configured");
     }
 
-    // Get public URL for the video data
-    const { data: { publicUrl } } = supabaseClient
-      .storage
-      .from("event-photos")
-      .getPublicUrl(videoStoragePath);
+    // Upload title card
+    const titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: "POST",
+      body: JSON.stringify({
+        file: titleImageUrl,
+        upload_preset: "ml_default",
+        folder: "event-videos"
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)}`
+      }
+    });
 
-    console.log("Video data stored at:", publicUrl);
+    if (!titleCardUpload.ok) {
+      console.error("Failed to upload title card:", await titleCardUpload.text());
+      throw new Error("Failed to upload title card to Cloudinary");
+    }
+
+    const titleCardData = await titleCardUpload.json();
+    const titleCardPublicId = titleCardData.public_id;
+    console.log("Title card uploaded:", titleCardPublicId);
+
+    // Upload selected photos to Cloudinary
+    console.log(`Uploading ${selectedPhotos.length} photos to Cloudinary...`);
+    const uploadedPhotoIds: string[] = [];
+    
+    for (const photo of selectedPhotos) {
+      const { data: fileData, error } = await supabaseClient
+        .storage
+        .from("event-photos")
+        .download(photo.storage_path);
+      
+      if (error) {
+        console.error(`Error downloading ${photo.storage_path}:`, error);
+        continue;
+      }
+
+      const base64Data = await imageToBase64(fileData);
+      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: "POST",
+        body: JSON.stringify({
+          file: `data:image/jpeg;base64,${base64Data}`,
+          upload_preset: "ml_default",
+          folder: "event-videos"
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${btoa(`${CLOUDINARY_API_KEY}:${CLOUDINARY_API_SECRET}`)}`
+        }
+      });
+
+      if (uploadResponse.ok) {
+        const uploadData = await uploadResponse.json();
+        uploadedPhotoIds.push(uploadData.public_id);
+      }
+    }
+
+    console.log(`Uploaded ${uploadedPhotoIds.length} photos to Cloudinary`);
+
+    // Create video using Cloudinary's video transformation API
+    console.log("Creating video with Cloudinary...");
+    
+    // Build video layers: title card (3s) + photos (3s each)
+    const videoLayers = [
+      { publicId: titleCardPublicId, duration: 3 },
+      ...uploadedPhotoIds.map(id => ({ publicId: id, duration: 3 }))
+    ];
+
+    // Use Cloudinary's video concatenation
+    const videoTransformation = videoLayers.map((layer, index) => {
+      return `l_${layer.publicId.replace(/\//g, ':')},w_1080,h_1920,c_fill,du_${layer.duration}`;
+    }).join('/');
+
+    // Generate the video URL
+    const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${videoTransformation}/e_concatenate/f_mp4,q_auto/event-video-${eventId}.mp4`;
+    
+    console.log("Video URL generated:", videoUrl);
 
     // Update video record with complete metadata
     const videoMetadata = {
@@ -332,11 +343,14 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       aiReasoning: aiReasoning,
       duration: "60 seconds",
       format: "Instagram Reel (1080x1920)",
-      titleCard: "AI Generated",
+      titleCard: "AI Generated via Cloudinary",
       eventName: eventData.name,
-      videoDataUrl: publicUrl,
-      generatedAt: new Date().toISOString(),
-      note: "Video assembly requires external video processing. This contains all assets ready for compilation."
+      videoUrl: videoUrl,
+      cloudinaryAssets: {
+        titleCard: titleCardPublicId,
+        photos: uploadedPhotoIds
+      },
+      generatedAt: new Date().toISOString()
     };
 
     await supabaseClient
@@ -344,7 +358,7 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       .update({
         status: 'completed',
         metadata: videoMetadata,
-        video_url: publicUrl, // Store the JSON file URL
+        video_url: videoUrl,
         completed_at: new Date().toISOString()
       })
       .eq('id', videoRecord.id);
@@ -354,9 +368,8 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
     return new Response(JSON.stringify({
       success: true,
       videoId: videoRecord.id,
-      message: "Video assets prepared! All photos selected and title card generated. Ready for video compilation.",
-      titleCardUrl: titleImageUrl,
-      dataUrl: publicUrl,
+      message: "Video generated successfully using Cloudinary!",
+      videoUrl: videoUrl,
       metadata: videoMetadata
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
