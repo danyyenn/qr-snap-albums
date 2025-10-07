@@ -99,7 +99,9 @@ const EventDetail = () => {
       }
 
       setEvent(eventData);
-      setIsHost(session?.user?.id === eventData.host_id);
+      const hostStatus = session?.user?.id === eventData.host_id;
+      console.log('Host check:', { userId: session?.user?.id, hostId: eventData.host_id, isHost: hostStatus });
+      setIsHost(hostStatus);
 
       const { data: photosData, error: photosError } = await supabase
         .from("photos")
@@ -630,7 +632,7 @@ const EventDetail = () => {
                     <span className="font-bold text-amber-600">{photos.filter(p => !p.is_approved).length}</span>
                   </div>
                 )}
-                {isHost && (
+                {isHost ? (
                   <>
                     <Button
                       onClick={handleDownloadAll}
@@ -650,8 +652,13 @@ const EventDetail = () => {
                       <Video className="w-4 h-4 mr-2" />
                       {generatingVideo ? "Processing..." : "Generate Video (£3)"}
                     </Button>
+                    {photos.filter(p => p.is_approved).length < 3 && (
+                      <p className="text-xs text-muted-foreground mt-2 text-center">
+                        Need 3+ approved photos for video
+                      </p>
+                    )}
                   </>
-                )}
+                ) : null}
               </div>
             </CardContent>
           </Card>
