@@ -257,12 +257,24 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
     console.log("API key:", CLOUDINARY_API_KEY);
     console.log("API secret length:", CLOUDINARY_API_SECRET?.length);
 
-    // Upload using unsigned upload (simpler, no signature needed)
+    // Upload using signed upload with proper signature
     console.log("Uploading title card to Cloudinary...");
     
+    const timestamp = Math.round(Date.now() / 1000);
+    
+    // Create signature - Cloudinary requires params in alphabetical order
+    const paramsToSign = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(paramsToSign);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
     const titleFormData = new FormData();
     titleFormData.append('file', titleImageUrl);
-    titleFormData.append('upload_preset', 'ml_default'); // Use default unsigned preset
+    titleFormData.append('timestamp', timestamp.toString());
+    titleFormData.append('api_key', CLOUDINARY_API_KEY);
+    titleFormData.append('signature', signature);
 
     const titleCardUpload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
       method: "POST",
@@ -296,9 +308,18 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
 
       const base64Data = await imageToBase64(fileData);
       
+      const photoTimestamp = Math.round(Date.now() / 1000);
+      const photoParamsToSign = `timestamp=${photoTimestamp}${CLOUDINARY_API_SECRET}`;
+      const photoData = encoder.encode(photoParamsToSign);
+      const photoHashBuffer = await crypto.subtle.digest('SHA-1', photoData);
+      const photoHashArray = Array.from(new Uint8Array(photoHashBuffer));
+      const photoSignature = photoHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
       const photoFormData = new FormData();
       photoFormData.append('file', `data:image/jpeg;base64,${base64Data}`);
-      photoFormData.append('upload_preset', 'ml_default'); // Use default unsigned preset
+      photoFormData.append('timestamp', photoTimestamp.toString());
+      photoFormData.append('api_key', CLOUDINARY_API_KEY);
+      photoFormData.append('signature', photoSignature);
 
       const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: "POST",
