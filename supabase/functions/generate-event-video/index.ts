@@ -243,8 +243,6 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
       throw new Error("No title card image generated");
     }
 
-    console.log("Title card generated successfully");
-
     // Upload title card to Cloudinary
     console.log("Uploading title card to Cloudinary...");
     const CLOUDINARY_CLOUD_NAME = Deno.env.get("CLOUDINARY_CLOUD_NAME");
@@ -254,6 +252,10 @@ Photo indices go from 0 to ${imageData.length - 1}. Return exactly ${Math.min(ta
     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
       throw new Error("Cloudinary credentials not configured");
     }
+    
+    console.log("Cloud name:", CLOUDINARY_CLOUD_NAME);
+    console.log("API key:", CLOUDINARY_API_KEY);
+    console.log("API secret length:", CLOUDINARY_API_SECRET?.length);
 
     // Upload using Cloudinary's authenticated upload - properly formatted
     console.log("Uploading title card to Cloudinary...");
