@@ -213,7 +213,10 @@ const Upload = () => {
           .from("event-photos")
           .upload(fileName, uploadFile.file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw new Error(`Storage error: ${uploadError.message}`);
+        }
 
         const { data: photoData, error: dbError } = await supabase
           .from("photos")
@@ -227,7 +230,10 @@ const Upload = () => {
           .select()
           .single();
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error('Database insert error:', dbError);
+          throw new Error(`Database error: ${dbError.message}`);
+        }
 
         // Save photo ID to localStorage for guest
         if (photoData?.id) {
@@ -240,6 +246,7 @@ const Upload = () => {
           return updated;
         });
       } catch (error: any) {
+        console.error('Upload error:', error);
         setFiles((prev) => {
           const updated = [...prev];
           updated[i] = { ...updated[i], status: "error" };
@@ -248,7 +255,7 @@ const Upload = () => {
         toast({
           variant: "destructive",
           title: "Upload Failed",
-          description: `Failed to upload ${uploadFile.file.name}`,
+          description: `Failed to upload ${uploadFile.file.name}: ${error.message || 'Unknown error'}`,
         });
       }
     }
