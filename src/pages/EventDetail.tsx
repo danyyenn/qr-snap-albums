@@ -940,7 +940,7 @@ const EventDetail = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 sm:flex-shrink-0">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:flex-shrink-0">
                     {video.status === 'processing' && (
                       <span className="text-sm text-yellow-600 flex items-center gap-2">
                         <div className="animate-spin h-4 w-4 border-2 border-yellow-600 border-t-transparent rounded-full"></div>
@@ -948,10 +948,41 @@ const EventDetail = () => {
                       </span>
                     )}
                     {video.status === 'completed' && (
-                      <span className="text-sm text-green-600 flex items-center gap-2">
-                        <Check className="w-4 h-4" />
-                        Complete
-                      </span>
+                      <>
+                        <span className="text-sm text-green-600 flex items-center gap-2">
+                          <Check className="w-4 h-4" />
+                          Complete
+                        </span>
+                        {video.video_url && (
+                          <div className="flex gap-2 mt-2 sm:mt-0">
+                            <Button
+                              onClick={() => {
+                                if (video.video_url) {
+                                  // If it's a base64 image, download it
+                                  if (video.video_url.startsWith('data:image')) {
+                                    const link = document.createElement('a');
+                                    link.href = video.video_url;
+                                    link.download = `${event.name}-title-card.png`;
+                                    link.click();
+                                    toast({
+                                      title: "Downloaded",
+                                      description: "Title card image downloaded",
+                                    });
+                                  } else {
+                                    // Otherwise open the URL
+                                    window.open(video.video_url, '_blank');
+                                  }
+                                }
+                              }}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
                     {video.status === 'failed' && (
                       <span className="text-sm text-red-600 flex items-center gap-2">
