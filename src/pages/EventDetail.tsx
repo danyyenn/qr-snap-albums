@@ -467,66 +467,96 @@ const EventDetail = () => {
       canvas.height = 3000;
 
       // Create gradient background
-      // Draw cork board background
-      ctx.fillStyle = "#D4B896";
+      // Draw artistic cork board background with gradient
+      const bgGradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width / 1.5
+      );
+      bgGradient.addColorStop(0, "#DEC4A1");
+      bgGradient.addColorStop(0.5, "#D4B896");
+      bgGradient.addColorStop(1, "#C9A876");
+      ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Add cork texture with random dots for realistic effect
-      for (let i = 0; i < 1200; i++) {
+      // Add organic cork texture with varied dots and grain
+      for (let i = 0; i < 2000; i++) {
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
-        const size = Math.random() * 2.5 + 0.5;
-        const opacity = Math.random() * 0.2 + 0.05;
+        const size = Math.random() * 3 + 0.3;
+        const opacity = Math.random() * 0.25 + 0.05;
+        const brownTone = Math.random() > 0.5 ? "139, 101, 63" : "115, 85, 55";
         
-        ctx.fillStyle = `rgba(139, 101, 63, ${opacity})`;
+        ctx.fillStyle = `rgba(${brownTone}, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Add subtle stains and marks for authenticity
+      for (let i = 0; i < 15; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const size = Math.random() * 120 + 40;
+        
+        ctx.fillStyle = `rgba(160, 120, 80, ${Math.random() * 0.08 + 0.02})`;
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Draw title at the top
-      const titleHeight = 250;
+      // Draw title at the top with artistic styling
+      const titleHeight = 220;
       ctx.save();
       
-      // Title background with subtle shadow
-      ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 10;
-      ctx.fillRect(100, 80, canvas.width - 200, titleHeight);
+      // Draw title text with outline for depth
+      ctx.font = "bold 130px 'Pacifico', cursive";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      
+      // Text shadow for depth
+      ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 4;
+      ctx.shadowOffsetY = 4;
+      
+      // Main title
+      ctx.fillStyle = "#3D2817";
+      ctx.fillText(event.name, canvas.width / 2, 150);
       
       ctx.shadowColor = "transparent";
       
-      // Draw title text
-      ctx.fillStyle = "#2d3748";
-      ctx.font = "120px 'Pacifico', cursive";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(event.name, canvas.width / 2, titleHeight / 2 + 80);
+      // Subtle outline
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.lineWidth = 2;
+      ctx.strokeText(event.name, canvas.width / 2, 150);
       
-      // Draw subtitle
+      // Draw subtitle with artistic font
       const eventDateStr = new Date(event.event_date).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
       });
-      ctx.font = "45px 'Satisfy', cursive";
-      ctx.fillStyle = "#718096";
-      ctx.fillText(eventDateStr, canvas.width / 2, titleHeight / 2 + 180);
+      ctx.font = "italic 50px 'Satisfy', cursive";
+      ctx.fillStyle = "#5D4E37";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.fillText(eventDateStr, canvas.width / 2, 230);
       
       ctx.restore();
 
       // Draw photos with creative positioning
-      const startY = titleHeight + 150;
-      const photoWidth = 400;
-      const photoHeight = 350;
+      const startY = titleHeight + 120;
+      const photoWidth = 380;
+      const photoHeight = 340;
       
       images.forEach((img, index) => {
         ctx.save();
         
-        // Calculate position with varied layout
+        // Calculate position with varied layout - tighter spacing
         const cols = 4;
-        const spacing = 120;
+        const spacing = 60;
         const col = index % cols;
         const row = Math.floor(index / cols);
         
