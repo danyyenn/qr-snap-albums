@@ -467,18 +467,18 @@ const EventDetail = () => {
       canvas.height = 3000;
 
       // Create gradient background
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, "#f8f9fa");
-      gradient.addColorStop(1, "#e9ecef");
-      ctx.fillStyle = gradient;
+      // Draw cork board background
+      ctx.fillStyle = "#D4B896";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Add decorative elements
-      ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-      for (let i = 0; i < 30; i++) {
+      
+      // Add cork texture with random dots for realistic effect
+      for (let i = 0; i < 1200; i++) {
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
-        const size = Math.random() * 100 + 50;
+        const size = Math.random() * 2.5 + 0.5;
+        const opacity = Math.random() * 0.2 + 0.05;
+        
+        ctx.fillStyle = `rgba(139, 101, 63, ${opacity})`;
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.fill();
