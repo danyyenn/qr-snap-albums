@@ -434,8 +434,11 @@ const EventDetail = () => {
         throw new Error("No approved photos to create collage");
       }
 
+      // Limit to max 20 photos for better visual appeal
+      const selectedPhotos = approvedPhotos.slice(0, 20);
+
       // Load all images
-      const imagePromises = approvedPhotos.map(async (photo) => {
+      const imagePromises = selectedPhotos.map(async (photo) => {
         const { data, error } = await supabase.storage
           .from("event-photos")
           .download(photo.storage_path);
@@ -459,51 +462,120 @@ const EventDetail = () => {
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Could not get canvas context");
 
-      // Calculate grid dimensions
-      const photoCount = images.length;
-      const cols = Math.ceil(Math.sqrt(photoCount));
-      const rows = Math.ceil(photoCount / cols);
-      
-      const cellSize = 600; // Size of each photo cell
-      const padding = 20;
-      canvas.width = cols * cellSize + (cols + 1) * padding;
-      canvas.height = rows * cellSize + (rows + 1) * padding;
+      // Set canvas size with space for title
+      canvas.width = 2400;
+      canvas.height = 3000;
 
-      // Fill background with white
-      ctx.fillStyle = "white";
+      // Create gradient background
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "#f8f9fa");
+      gradient.addColorStop(1, "#e9ecef");
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw images in grid
+      // Add decorative elements
+      ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+      for (let i = 0; i < 30; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const size = Math.random() * 100 + 50;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw title at the top
+      const titleHeight = 250;
+      ctx.save();
+      
+      // Title background with subtle shadow
+      ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 10;
+      ctx.fillRect(100, 80, canvas.width - 200, titleHeight);
+      
+      ctx.shadowColor = "transparent";
+      
+      // Draw title text
+      ctx.fillStyle = "#2d3748";
+      ctx.font = "120px 'Pacifico', cursive";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(event.name, canvas.width / 2, titleHeight / 2 + 80);
+      
+      // Draw subtitle
+      const eventDateStr = new Date(event.event_date).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+      ctx.font = "45px 'Satisfy', cursive";
+      ctx.fillStyle = "#718096";
+      ctx.fillText(eventDateStr, canvas.width / 2, titleHeight / 2 + 180);
+      
+      ctx.restore();
+
+      // Draw photos with creative positioning
+      const startY = titleHeight + 150;
+      const photoWidth = 400;
+      const photoHeight = 350;
+      
       images.forEach((img, index) => {
+        ctx.save();
+        
+        // Calculate position with varied layout
+        const cols = 4;
+        const spacing = 120;
         const col = index % cols;
         const row = Math.floor(index / cols);
-        const x = col * cellSize + (col + 1) * padding;
-        const y = row * cellSize + (row + 1) * padding;
-
-        // Calculate scaling to cover the cell
-        const scale = Math.max(cellSize / img.width, cellSize / img.height);
+        
+        // Add some randomness to positioning
+        const randomOffsetX = (Math.random() - 0.5) * 60;
+        const randomOffsetY = (Math.random() - 0.5) * 60;
+        
+        const x = 200 + col * (photoWidth + spacing) + randomOffsetX;
+        const y = startY + row * (photoHeight + spacing) + randomOffsetY;
+        
+        // Random rotation between -15 and 15 degrees
+        const rotation = (Math.random() - 0.5) * 0.3;
+        
+        // Move to center of photo for rotation
+        ctx.translate(x + photoWidth / 2, y + photoHeight / 2);
+        ctx.rotate(rotation);
+        
+        // Draw white border (polaroid effect)
+        ctx.fillStyle = "white";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+        ctx.shadowBlur = 25;
+        ctx.shadowOffsetX = 8;
+        ctx.shadowOffsetY = 8;
+        ctx.fillRect(-photoWidth / 2 - 15, -photoHeight / 2 - 15, photoWidth + 30, photoHeight + 60);
+        
+        ctx.shadowColor = "transparent";
+        
+        // Draw the photo
+        const scale = Math.max(photoWidth / img.width, photoHeight / img.height);
         const scaledWidth = img.width * scale;
         const scaledHeight = img.height * scale;
+        const offsetX = (photoWidth - scaledWidth) / 2;
+        const offsetY = (photoHeight - scaledHeight) / 2;
         
-        // Center the image in the cell
-        const offsetX = (cellSize - scaledWidth) / 2;
-        const offsetY = (cellSize - scaledHeight) / 2;
-
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x, y, cellSize, cellSize);
+        ctx.rect(-photoWidth / 2, -photoHeight / 2, photoWidth, photoHeight);
         ctx.clip();
-        ctx.drawImage(img, x + offsetX, y + offsetY, scaledWidth, scaledHeight);
+        ctx.drawImage(
+          img,
+          -photoWidth / 2 + offsetX,
+          -photoHeight / 2 + offsetY,
+          scaledWidth,
+          scaledHeight
+        );
+        ctx.restore();
+        
         ctx.restore();
       });
-
-      // Add event name at the bottom
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-      ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
-      ctx.fillStyle = "white";
-      ctx.font = "bold 40px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(event.name, canvas.width / 2, canvas.height - 30);
 
       // Convert to blob and download
       canvas.toBlob((blob) => {
@@ -516,8 +588,8 @@ const EventDetail = () => {
           URL.revokeObjectURL(url);
 
           toast({
-            title: "Collage Created!",
-            description: "Your photo collage has been downloaded",
+            title: "Stylish Collage Created!",
+            description: "Your artistic photo collage has been downloaded",
           });
         }
       }, "image/png");
