@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Edit2, Check, X, Pencil } from "lucide-react";
+import { Download, Share2, Calendar, MapPin, Image as ImageIcon, Trash2, Settings, ArrowDown, Edit2, Check, X, Pencil, Images } from "lucide-react";
 import JSZip from "jszip";
 import {
   AlertDialog,
@@ -71,6 +71,7 @@ const EventDetail = () => {
   const [editDetailsOpen, setEditDetailsOpen] = useState(false);
   const [editedEvent, setEditedEvent] = useState<Partial<Event>>({});
   const [savingDetails, setSavingDetails] = useState(false);
+  const [generatingCollage, setGeneratingCollage] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -420,6 +421,117 @@ const EventDetail = () => {
         title: "Download Failed",
         description: error.message,
       });
+    }
+  };
+
+  const handleGenerateCollage = async () => {
+    if (!event || photos.length === 0) return;
+
+    setGeneratingCollage(true);
+    try {
+      const approvedPhotos = photos.filter(p => p.is_approved);
+      if (approvedPhotos.length === 0) {
+        throw new Error("No approved photos to create collage");
+      }
+
+      // Load all images
+      const imagePromises = approvedPhotos.map(async (photo) => {
+        const { data, error } = await supabase.storage
+          .from("event-photos")
+          .download(photo.storage_path);
+        
+        if (error) throw error;
+        
+        const url = URL.createObjectURL(data);
+        return new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = url;
+        });
+      });
+
+      const images = await Promise.all(imagePromises);
+      
+      // Create canvas for collage
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Could not get canvas context");
+
+      // Calculate grid dimensions
+      const photoCount = images.length;
+      const cols = Math.ceil(Math.sqrt(photoCount));
+      const rows = Math.ceil(photoCount / cols);
+      
+      const cellSize = 600; // Size of each photo cell
+      const padding = 20;
+      canvas.width = cols * cellSize + (cols + 1) * padding;
+      canvas.height = rows * cellSize + (rows + 1) * padding;
+
+      // Fill background with white
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw images in grid
+      images.forEach((img, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        const x = col * cellSize + (col + 1) * padding;
+        const y = row * cellSize + (row + 1) * padding;
+
+        // Calculate scaling to cover the cell
+        const scale = Math.max(cellSize / img.width, cellSize / img.height);
+        const scaledWidth = img.width * scale;
+        const scaledHeight = img.height * scale;
+        
+        // Center the image in the cell
+        const offsetX = (cellSize - scaledWidth) / 2;
+        const offsetY = (cellSize - scaledHeight) / 2;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, cellSize, cellSize);
+        ctx.clip();
+        ctx.drawImage(img, x + offsetX, y + offsetY, scaledWidth, scaledHeight);
+        ctx.restore();
+      });
+
+      // Add event name at the bottom
+      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+      ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+      ctx.fillStyle = "white";
+      ctx.font = "bold 40px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(event.name, canvas.width / 2, canvas.height - 30);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `${event.name}-collage.png`;
+          link.click();
+          URL.revokeObjectURL(url);
+
+          toast({
+            title: "Collage Created!",
+            description: "Your photo collage has been downloaded",
+          });
+        }
+      }, "image/png");
+
+      // Clean up image URLs
+      images.forEach(img => URL.revokeObjectURL(img.src));
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Collage Generation Failed",
+        description: error.message,
+      });
+    } finally {
+      setGeneratingCollage(false);
     }
   };
 
@@ -833,7 +945,7 @@ const EventDetail = () => {
                   </div>
                 )}
                 {isHost ? (
-                  <>
+                  <div className="space-y-2">
                     <Button
                       onClick={handleDownloadAll}
                       disabled={downloading || photos.filter(p => p.is_approved).length === 0}
@@ -843,7 +955,16 @@ const EventDetail = () => {
                       <Download className="w-4 h-4 mr-2" />
                       {downloading ? "Downloading..." : "Download All"}
                     </Button>
-                  </>
+                    <Button
+                      onClick={handleGenerateCollage}
+                      disabled={generatingCollage || photos.filter(p => p.is_approved).length === 0}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Images className="w-4 h-4 mr-2" />
+                      {generatingCollage ? "Creating..." : "Generate Collage"}
+                    </Button>
+                  </div>
                 ) : null}
               </div>
             </CardContent>
