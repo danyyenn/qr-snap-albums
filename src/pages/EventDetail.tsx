@@ -374,16 +374,93 @@ const EventDetail = () => {
 
       const content = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(content);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${event.name}-photos.zip`;
-      link.click();
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Download Complete!",
-        description: `Downloaded ${photos.length} photos`,
-      });
+      
+      // iOS-friendly download
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        // For iOS, open in new window with instructions
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Download Photos - ${event.name}</title>
+                <style>
+                  body {
+                    margin: 0;
+                    padding: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    background: #f5f5f5;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  }
+                  .container {
+                    max-width: 400px;
+                    text-align: center;
+                    padding: 20px;
+                    background: white;
+                    border-radius: 12px;
+                    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+                  }
+                  h3 {
+                    margin: 0 0 15px 0;
+                    font-size: 20px;
+                    color: #333;
+                  }
+                  p {
+                    margin: 0 0 20px 0;
+                    font-size: 15px;
+                    color: #666;
+                    line-height: 1.5;
+                  }
+                  a {
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background: #007AFF;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 16px;
+                  }
+                  a:active {
+                    background: #0051D5;
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <h3>📦 Photos Ready</h3>
+                  <p>Tap the button below to download ${photos.length} photos as a ZIP file</p>
+                  <a href="${url}" download="${event.name}-photos.zip">Download ZIP</a>
+                </div>
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+        }
+        toast({
+          title: "Download Ready",
+          description: "Tap the download button in the new window",
+        });
+      } else {
+        // Desktop/Android: standard download
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${event.name}-photos.zip`;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Download Complete!",
+          description: `Downloaded ${photos.length} photos`,
+        });
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -404,16 +481,87 @@ const EventDetail = () => {
       if (error) throw error;
       if (data) {
         const url = URL.createObjectURL(data);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = photo.original_filename || `photo-${photo.id}.jpg`;
-        link.click();
-        URL.revokeObjectURL(url);
-
-        toast({
-          title: "Downloaded!",
-          description: "Photo downloaded successfully",
-        });
+        
+        // iOS-friendly download
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          // For iOS, open in new window with image and download link
+          const newWindow = window.open();
+          if (newWindow) {
+            newWindow.document.write(`
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>Download Photo</title>
+                  <style>
+                    body {
+                      margin: 0;
+                      padding: 20px;
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      justify-content: center;
+                      min-height: 100vh;
+                      background: #f5f5f5;
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    }
+                    img {
+                      max-width: 90%;
+                      height: auto;
+                      border-radius: 12px;
+                      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                      margin-bottom: 20px;
+                    }
+                    .instructions {
+                      padding: 20px;
+                      background: white;
+                      border-radius: 12px;
+                      text-align: center;
+                      max-width: 400px;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    }
+                    h3 {
+                      margin: 0 0 10px 0;
+                      font-size: 18px;
+                      color: #333;
+                    }
+                    p {
+                      margin: 0;
+                      font-size: 14px;
+                      color: #666;
+                      line-height: 1.5;
+                    }
+                  </style>
+                </head>
+                <body>
+                  <img src="${url}" alt="Photo">
+                  <div class="instructions">
+                    <h3>📱 To Save This Photo:</h3>
+                    <p>Long-press on the image above and select "Save Image" or "Add to Photos"</p>
+                  </div>
+                </body>
+              </html>
+            `);
+            newWindow.document.close();
+          }
+          toast({
+            title: "Photo Opened",
+            description: "Long-press the image to save it",
+          });
+        } else {
+          // Desktop/Android: standard download
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = photo.original_filename || `photo-${photo.id}.jpg`;
+          link.click();
+          URL.revokeObjectURL(url);
+          
+          toast({
+            title: "Downloaded!",
+            description: "Photo downloaded successfully",
+          });
+        }
       }
     } catch (error: any) {
       toast({
@@ -704,16 +852,87 @@ const EventDetail = () => {
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `${event.name}-collage.png`;
-          link.click();
-          URL.revokeObjectURL(url);
-
-          toast({
-            title: "Stylish Collage Created!",
-            description: "Your artistic photo collage has been downloaded",
-          });
+          
+          // iOS-friendly download
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          if (isIOS) {
+            // For iOS, open in new window with image
+            const newWindow = window.open();
+            if (newWindow) {
+              newWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Collage - ${event.name}</title>
+                    <style>
+                      body {
+                        margin: 0;
+                        padding: 20px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 100vh;
+                        background: #f5f5f5;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      }
+                      img {
+                        max-width: 95%;
+                        height: auto;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                        margin-bottom: 20px;
+                      }
+                      .instructions {
+                        padding: 20px;
+                        background: white;
+                        border-radius: 12px;
+                        text-align: center;
+                        max-width: 500px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                      }
+                      h3 {
+                        margin: 0 0 10px 0;
+                        font-size: 20px;
+                        color: #333;
+                      }
+                      p {
+                        margin: 0;
+                        font-size: 15px;
+                        color: #666;
+                        line-height: 1.5;
+                      }
+                    </style>
+                  </head>
+                  <body>
+                    <img src="${url}" alt="Photo Collage">
+                    <div class="instructions">
+                      <h3>🎨 Your Artistic Collage</h3>
+                      <p>Long-press on the image above and select "Save Image" or "Add to Photos" to save your collage</p>
+                    </div>
+                  </body>
+                </html>
+              `);
+              newWindow.document.close();
+            }
+            toast({
+              title: "Collage Created!",
+              description: "Long-press the image to save it",
+            });
+          } else {
+            // Desktop/Android: standard download
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${event.name}-collage.png`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            toast({
+              title: "Stylish Collage Created!",
+              description: "Your artistic photo collage has been downloaded",
+            });
+          }
         }
       }, "image/png");
 
@@ -1153,11 +1372,11 @@ const EventDetail = () => {
                     <Button
                       onClick={handleGenerateCollage}
                       disabled={generatingCollage || photos.filter(p => p.is_approved).length === 0}
-                      variant="outline"
-                      className="w-full"
+                      variant="default"
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
                     >
                       <Images className="w-4 h-4 mr-2" />
-                      {generatingCollage ? "Creating..." : "Generate Collage"}
+                      {generatingCollage ? "Creating Magic..." : "✨ Generate Collage"}
                     </Button>
                   </div>
                 ) : null}
