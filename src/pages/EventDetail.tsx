@@ -434,8 +434,8 @@ const EventDetail = () => {
         throw new Error("No approved photos to create collage");
       }
 
-      // Limit to max 20 photos for better visual appeal
-      const selectedPhotos = approvedPhotos.slice(0, 20);
+      // Limit to max 24 photos for better visual appeal
+      const selectedPhotos = approvedPhotos.slice(0, 24);
 
       // Load all images
       const imagePromises = selectedPhotos.map(async (photo) => {
