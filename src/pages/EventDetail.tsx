@@ -546,40 +546,102 @@ const EventDetail = () => {
       
       ctx.restore();
 
+      // Add celebration decorations at the top
+      ctx.save();
+      
+      // Draw confetti pieces around the title
+      const confettiColors = ["#FFD700", "#FF6B9D", "#4ECDC4", "#F76B1C", "#9B59B6"];
+      for (let i = 0; i < 50; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * 320;
+        const size = Math.random() * 15 + 8;
+        const rotation = Math.random() * Math.PI;
+        
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        
+        ctx.fillStyle = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+        ctx.shadowBlur = 4;
+        
+        if (Math.random() > 0.5) {
+          // Rectangle confetti
+          ctx.fillRect(-size / 2, -size / 4, size, size / 2);
+        } else {
+          // Circle confetti
+          ctx.beginPath();
+          ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        ctx.restore();
+      }
+      
+      // Draw sparkles/stars
+      ctx.shadowColor = "transparent";
+      for (let i = 0; i < 30; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * 300;
+        const size = Math.random() * 4 + 2;
+        
+        ctx.fillStyle = `rgba(255, 215, 0, ${Math.random() * 0.6 + 0.4})`;
+        ctx.beginPath();
+        // Draw a star shape
+        for (let j = 0; j < 5; j++) {
+          const angle = (Math.PI * 2 * j) / 5 - Math.PI / 2;
+          const radius = j % 2 === 0 ? size : size / 2;
+          const px = x + Math.cos(angle) * radius;
+          const py = y + Math.sin(angle) * radius;
+          if (j === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      ctx.restore();
+
       // Draw photos with creative positioning
-      const startY = titleHeight + 120;
-      const photoWidth = 380;
-      const photoHeight = 340;
+      const startY = titleHeight + 140;
+      const photoWidth = 450;
+      const photoHeight = 400;
       
       images.forEach((img, index) => {
         ctx.save();
         
-        // Calculate position with varied layout - tighter spacing
+        // Calculate position with varied layout - tighter spacing, centered
         const cols = 4;
-        const spacing = 60;
+        const spacing = 50;
         const col = index % cols;
         const row = Math.floor(index / cols);
         
-        // Add some randomness to positioning
-        const randomOffsetX = (Math.random() - 0.5) * 60;
-        const randomOffsetY = (Math.random() - 0.5) * 60;
+        // Calculate total width and center the grid
+        const totalWidth = cols * photoWidth + (cols - 1) * spacing;
+        const startX = (canvas.width - totalWidth) / 2;
         
-        const x = 200 + col * (photoWidth + spacing) + randomOffsetX;
+        // Add some randomness to positioning
+        const randomOffsetX = (Math.random() - 0.5) * 50;
+        const randomOffsetY = (Math.random() - 0.5) * 50;
+        
+        const x = startX + col * (photoWidth + spacing) + randomOffsetX;
         const y = startY + row * (photoHeight + spacing) + randomOffsetY;
         
-        // Random rotation between -15 and 15 degrees
-        const rotation = (Math.random() - 0.5) * 0.3;
+        // Random rotation between -12 and 12 degrees
+        const rotation = (Math.random() - 0.5) * 0.25;
         
         // Move to center of photo for rotation
         ctx.translate(x + photoWidth / 2, y + photoHeight / 2);
         ctx.rotate(rotation);
         
+        // Enhanced 3D shadow - multiple layers for depth
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 35;
+        ctx.shadowOffsetX = 12;
+        ctx.shadowOffsetY = 12;
+        
         // Draw white border (polaroid effect)
         ctx.fillStyle = "white";
-        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-        ctx.shadowBlur = 25;
-        ctx.shadowOffsetX = 8;
-        ctx.shadowOffsetY = 8;
         ctx.fillRect(-photoWidth / 2 - 15, -photoHeight / 2 - 15, photoWidth + 30, photoHeight + 60);
         
         ctx.shadowColor = "transparent";
