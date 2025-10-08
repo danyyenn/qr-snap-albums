@@ -554,6 +554,37 @@ const EventDetail = () => {
         
         ctx.shadowColor = "transparent";
         
+        // Draw pin at the top
+        const pinX = 0;
+        const pinY = -photoHeight / 2 - 25;
+        
+        // Pin shadow
+        ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 3;
+        
+        // Pin head (circular part)
+        ctx.fillStyle = "#e74c3c"; // Red pin head
+        ctx.beginPath();
+        ctx.arc(pinX, pinY, 12, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Pin highlight for 3D effect
+        ctx.shadowColor = "transparent";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.beginPath();
+        ctx.arc(pinX - 3, pinY - 3, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Pin needle (metallic part going into photo)
+        ctx.fillStyle = "#95a5a6";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+        ctx.shadowBlur = 3;
+        ctx.fillRect(pinX - 1.5, pinY + 8, 3, 15);
+        
+        ctx.shadowColor = "transparent";
+        
         // Draw the photo
         const scale = Math.max(photoWidth / img.width, photoHeight / img.height);
         const scaledWidth = img.width * scale;
