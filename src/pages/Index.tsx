@@ -135,7 +135,7 @@ const Index = () => {
             <BenefitCard
               icon={<Image />}
               title="Flexible Storage"
-              description="3 months free storage. Extend anytime with affordable upgrades."
+              description="1 month free storage. Extend anytime with affordable upgrades."
             />
           </div>
         </div>

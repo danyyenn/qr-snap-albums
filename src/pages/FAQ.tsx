@@ -57,7 +57,7 @@ const FAQ = () => {
               <AccordionContent className="text-muted-foreground">
                 When you purchase invitations from our partner Etsy shops, you receive a redemption code that gives you 
                 free access to Flash N Share. Simply create an account, enter your code, and you'll receive one free event 
-                credit with up to 1,000 photos and 3 months of storage.
+                credit with up to 1,000 photos and 1 month of storage.
               </AccordionContent>
             </AccordionItem>
 
@@ -86,7 +86,7 @@ const FAQ = () => {
                 How long are photos stored?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
-                Your free event includes 3 months of storage. Before expiration, you'll receive reminders to download your 
+                Your free event includes 1 month of storage. Before expiration, you'll receive reminders to download your 
                 photos or purchase a storage extension. After the storage period ends, photos are permanently deleted to 
                 protect your privacy and free up space.
               </AccordionContent>
@@ -94,7 +94,7 @@ const FAQ = () => {
 
             <AccordionItem value="item-6" className="border rounded-lg px-6">
               <AccordionTrigger className="text-left">
-                Can I extend storage beyond 3 months?
+                Can I extend storage beyond 1 month?
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
                 Yes! Storage extensions will be available for purchase before your storage period expires. This allows you 

@@ -72,6 +72,8 @@ const EventDetail = () => {
   const [editedEvent, setEditedEvent] = useState<Partial<Event>>({});
   const [savingDetails, setSavingDetails] = useState(false);
   const [generatingCollage, setGeneratingCollage] = useState(false);
+  const [selectedPhotosForCollage, setSelectedPhotosForCollage] = useState<string[]>([]);
+  const [showPhotoSelector, setShowPhotoSelector] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -354,10 +356,21 @@ const EventDetail = () => {
 
     setDownloading(true);
     try {
+      const approvedPhotos = photos.filter(p => p.is_approved);
+      if (approvedPhotos.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "No Photos",
+          description: "No approved photos to download",
+        });
+        setDownloading(false);
+        return;
+      }
+
       const zip = new JSZip();
       const folder = zip.folder(event.name);
 
-      for (const photo of photos) {
+      for (const photo of approvedPhotos) {
         try {
           const { data, error } = await supabase.storage
             .from("event-photos")
@@ -376,13 +389,13 @@ const EventDetail = () => {
       
       // iOS-friendly download using Share API
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS && navigator.share) {
+      if (isIOS && navigator.share && navigator.canShare && navigator.canShare({ files: [new File([content], "test.zip")] })) {
         try {
           const file = new File([content], `${event.name}-photos.zip`, { type: "application/zip" });
           await navigator.share({
             files: [file],
             title: `${event.name} Photos`,
-            text: `${photos.length} photos from ${event.name}`,
+            text: `${approvedPhotos.length} photos from ${event.name}`,
           });
           toast({
             title: "Shared Successfully!",
@@ -390,16 +403,13 @@ const EventDetail = () => {
           });
         } catch (shareError: any) {
           if (shareError.name !== 'AbortError') {
-            // Fallback to data URL download
+            // Fallback to opening in new window
             const url = URL.createObjectURL(content);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `${event.name}-photos.zip`;
-            link.click();
-            URL.revokeObjectURL(url);
+            window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
             toast({
               title: "Download Started",
-              description: `Downloading ${photos.length} photos`,
+              description: `Opening ZIP file in new tab. Use your browser's download or save function.`,
             });
           }
         }
@@ -409,15 +419,18 @@ const EventDetail = () => {
         const link = document.createElement("a");
         link.href = url;
         link.download = `${event.name}-photos.zip`;
+        document.body.appendChild(link);
         link.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
         
         toast({
           title: "Download Complete!",
-          description: `Downloaded ${photos.length} photos`,
+          description: `Downloaded ${approvedPhotos.length} photos`,
         });
       }
     } catch (error: any) {
+      console.error('Download error:', error);
       toast({
         variant: "destructive",
         title: "Download Failed",
@@ -440,7 +453,7 @@ const EventDetail = () => {
         
         // iOS-friendly download using Share API
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS && navigator.share) {
+        if (isIOS && navigator.share && navigator.canShare && navigator.canShare({ files: [new File([data], "test.jpg")] })) {
           try {
             const file = new File([data], filename, { type: data.type });
             await navigator.share({
@@ -453,16 +466,13 @@ const EventDetail = () => {
             });
           } catch (shareError: any) {
             if (shareError.name !== 'AbortError') {
-              // Fallback to data URL
+              // Fallback to opening in new window for iOS
               const url = URL.createObjectURL(data);
-              const link = document.createElement("a");
-              link.href = url;
-              link.download = filename;
-              link.click();
-              URL.revokeObjectURL(url);
+              window.open(url, '_blank');
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
               toast({
-                title: "Downloaded!",
-                description: "Photo downloaded successfully",
+                title: "Photo Opened!",
+                description: "Long-press the photo to save it",
               });
             }
           }
@@ -472,8 +482,10 @@ const EventDetail = () => {
           const link = document.createElement("a");
           link.href = url;
           link.download = filename;
+          document.body.appendChild(link);
           link.click();
-          URL.revokeObjectURL(url);
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 100);
           
           toast({
             title: "Downloaded!",
@@ -482,6 +494,7 @@ const EventDetail = () => {
         }
       }
     } catch (error: any) {
+      console.error('Download error:', error);
       toast({
         variant: "destructive",
         title: "Download Failed",
@@ -490,18 +503,42 @@ const EventDetail = () => {
     }
   };
 
+  const handleOpenCollageSelector = () => {
+    const approvedPhotos = photos.filter(p => p.is_approved);
+    if (approvedPhotos.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Photos",
+        description: "No approved photos available for collage",
+      });
+      return;
+    }
+    
+    // Pre-select up to 24 most recent photos
+    const preselected = approvedPhotos.slice(0, 24).map(p => p.id);
+    setSelectedPhotosForCollage(preselected);
+    setShowPhotoSelector(true);
+  };
+
   const handleGenerateCollage = async () => {
     if (!event || photos.length === 0) return;
 
     setGeneratingCollage(true);
+    setShowPhotoSelector(false);
+    
     try {
       const approvedPhotos = photos.filter(p => p.is_approved);
       if (approvedPhotos.length === 0) {
         throw new Error("No approved photos to create collage");
       }
 
-      // Limit to max 24 photos for better visual appeal
-      const selectedPhotos = approvedPhotos.slice(0, 24);
+      // Use selected photos or fallback to first 24
+      let selectedPhotos;
+      if (selectedPhotosForCollage.length > 0) {
+        selectedPhotos = approvedPhotos.filter(p => selectedPhotosForCollage.includes(p.id)).slice(0, 24);
+      } else {
+        selectedPhotos = approvedPhotos.slice(0, 24);
+      }
 
       // Load all images
       const imagePromises = selectedPhotos.map(async (photo) => {
@@ -773,7 +810,7 @@ const EventDetail = () => {
           
           // iOS-friendly download using Share API
           const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-          if (isIOS && navigator.share) {
+          if (isIOS && navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], "test.png")] })) {
             try {
               const file = new File([blob], filename, { type: "image/png" });
               await navigator.share({
@@ -787,16 +824,13 @@ const EventDetail = () => {
               });
             } catch (shareError: any) {
               if (shareError.name !== 'AbortError') {
-                // Fallback to data URL
+                // Fallback to opening in new window for iOS
                 const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = filename;
-                link.click();
-                URL.revokeObjectURL(url);
+                window.open(url, '_blank');
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
                 toast({
-                  title: "Collage Downloaded!",
-                  description: "Your artistic photo collage has been saved",
+                  title: "Collage Opened!",
+                  description: "Long-press the image to save it to your Photos",
                 });
               }
             }
@@ -806,8 +840,10 @@ const EventDetail = () => {
             const link = document.createElement("a");
             link.href = url;
             link.download = filename;
+            document.body.appendChild(link);
             link.click();
-            URL.revokeObjectURL(url);
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
             
             toast({
               title: "Stylish Collage Created!",
@@ -1251,7 +1287,7 @@ const EventDetail = () => {
                       {downloading ? "Downloading..." : "Download All"}
                     </Button>
                     <Button
-                      onClick={handleGenerateCollage}
+                      onClick={handleOpenCollageSelector}
                       disabled={generatingCollage || photos.filter(p => p.is_approved).length === 0}
                       variant="default"
                       className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
@@ -1495,6 +1531,71 @@ const EventDetail = () => {
                 Cancel
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Photo Selector Dialog for Collage */}
+      <Dialog open={showPhotoSelector} onOpenChange={setShowPhotoSelector}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select Photos for Collage</DialogTitle>
+            <DialogDescription>
+              Choose up to 24 photos for your collage. Currently selected: {selectedPhotosForCollage.length}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-4 py-4">
+            {photos.filter(p => p.is_approved).map((photo) => {
+              const isSelected = selectedPhotosForCollage.includes(photo.id);
+              return (
+                <div
+                  key={photo.id}
+                  className={`relative cursor-pointer rounded-lg overflow-hidden border-4 transition-all ${
+                    isSelected ? 'border-primary shadow-lg' : 'border-transparent'
+                  }`}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedPhotosForCollage(selectedPhotosForCollage.filter(id => id !== photo.id));
+                    } else if (selectedPhotosForCollage.length < 24) {
+                      setSelectedPhotosForCollage([...selectedPhotosForCollage, photo.id]);
+                    } else {
+                      toast({
+                        variant: "destructive",
+                        title: "Maximum Reached",
+                        description: "You can only select up to 24 photos",
+                      });
+                    }
+                  }}
+                >
+                  <img
+                    src={supabase.storage.from("event-photos").getPublicUrl(photo.storage_path).data.publicUrl}
+                    alt={photo.original_filename}
+                    className="w-full aspect-square object-cover"
+                  />
+                  {isSelected && (
+                    <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
+                      <Check className="w-8 h-8 text-white" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleGenerateCollage}
+              disabled={selectedPhotosForCollage.length === 0 || generatingCollage}
+              className="flex-1"
+            >
+              {generatingCollage ? "Creating..." : `Generate Collage (${selectedPhotosForCollage.length} photos)`}
+            </Button>
+            <Button
+              onClick={() => setShowPhotoSelector(false)}
+              variant="outline"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

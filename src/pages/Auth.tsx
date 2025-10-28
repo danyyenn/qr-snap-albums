@@ -21,9 +21,12 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [claimCode, setClaimCode] = useState(searchParams.get("code") || "");
   const needsCode = searchParams.get("needsCode") === "true";
+  const isResetMode = searchParams.get("mode") === "reset";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -219,6 +222,52 @@ const Auth = () => {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Password",
+        description: "Password must be at least 6 characters",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords Don't Match",
+        description: "Please make sure both passwords match",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Updated!",
+        description: "Your password has been successfully reset.",
+      });
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const defaultTab = searchParams.get("mode") === "signup" ? "signup" : "login";
 
   return (
@@ -234,10 +283,39 @@ const Auth = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Flash N Share</CardTitle>
           <CardDescription className="text-center">
-            Sign in to manage your event photos
+            {isResetMode ? "Reset your password" : "Sign in to manage your event photos"}
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isResetMode ? (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Updating..." : "Reset Password"}
+              </Button>
+            </form>
+          ) : (
           <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
@@ -342,6 +420,7 @@ const Auth = () => {
               </form>
             </TabsContent>
           </Tabs>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <p className="text-xs text-center text-muted-foreground">

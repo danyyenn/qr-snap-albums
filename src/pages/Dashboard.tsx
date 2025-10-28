@@ -179,15 +179,49 @@ const Dashboard = () => {
               <CardTitle>Event Limit Reached</CardTitle>
               <CardDescription>
                 You've used all {profile.events_allowed} event{profile.events_allowed > 1 ? 's' : ''} from your Etsy purchase.
-                Purchase another invitation on Etsy to create more events.
+                Purchase another invitation on Etsy or enter a new claim code to create more events.
               </CardDescription>
             </CardHeader>
-            <CardFooter>
+            <CardFooter className="flex gap-2">
               <a href="https://etsy.com/your-shop-url" target="_blank" rel="noopener noreferrer">
                 <Button variant="outline">
                   Shop Invitations on Etsy
                 </Button>
               </a>
+              <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    Enter New Claim Code
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Enter Your Claim Code</DialogTitle>
+                    <DialogDescription>
+                      Enter a new claim code from your Etsy purchase to get additional event credits.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="claim-code">Claim Code</Label>
+                      <Input
+                        id="claim-code"
+                        placeholder="Enter your claim code"
+                        value={claimCode}
+                        onChange={(e) => setClaimCode(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleClaimCode}
+                      disabled={claiming}
+                    >
+                      {claiming ? "Verifying..." : "Verify Code"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardFooter>
           </Card>
         )}
