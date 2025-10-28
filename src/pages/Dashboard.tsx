@@ -174,24 +174,20 @@ const Dashboard = () => {
         </div>
 
         {profile?.is_host && !canCreateEvent && (
-          <Card className="mb-8 border-amber-500/20 bg-amber-500/5">
+          <Card className="mb-8 border-primary/30 bg-gradient-to-br from-primary/5 via-primary/10 to-accent/5">
             <CardHeader>
-              <CardTitle>Event Limit Reached</CardTitle>
-              <CardDescription>
-                You've used all {profile.events_allowed} event{profile.events_allowed > 1 ? 's' : ''} from your Etsy purchase.
-                Purchase another invitation on Etsy or enter a new claim code to create more events.
+              <CardTitle className="text-2xl">🎉 Ready for Your Next Event?</CardTitle>
+              <CardDescription className="text-base">
+                You've successfully hosted {profile.events_allowed} event{profile.events_allowed > 1 ? 's' : ''}! 
+                Want to capture more magical moments? Get another invitation or use a new claim code.
               </CardDescription>
             </CardHeader>
-            <CardFooter className="flex gap-2">
-              <a href="https://etsy.com/your-shop-url" target="_blank" rel="noopener noreferrer">
-                <Button variant="outline">
-                  Shop Invitations on Etsy
-                </Button>
-              </a>
+            <CardFooter className="flex flex-col gap-4">
               <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">
-                    Enter New Claim Code
+                  <Button variant="hero" size="lg" className="w-full">
+                    <Plus className="w-5 h-5 mr-2" />
+                    Set Up New Event
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -222,6 +218,14 @@ const Dashboard = () => {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              <a href="https://etsy.com/your-shop-url" target="_blank" rel="noopener noreferrer" className="w-full">
+                <Button variant="outline" size="lg" className="w-full">
+                  Shop More Invitations on Etsy
+                </Button>
+              </a>
+              <p className="text-xs text-center text-muted-foreground pt-2">
+                Event limit reached: {profile.events_created}/{profile.events_allowed} used
+              </p>
             </CardFooter>
           </Card>
         )}
