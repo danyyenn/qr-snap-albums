@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Copy, Check } from "lucide-react";
+import { ArrowLeft, Plus, Copy, Check, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 
@@ -28,6 +28,8 @@ const Admin = () => {
   const [claimCodes, setClaimCodes] = useState<ClaimCode[]>([]);
   const [newCodeCount, setNewCodeCount] = useState(10);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [universalCode, setUniversalCode] = useState<string | null>(null);
+  const [generatingUniversal, setGeneratingUniversal] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -74,8 +76,42 @@ const Admin = () => {
       });
     } else {
       setClaimCodes(data || []);
+      // Find the most recent universal code
+      const latestUniversal = data?.find(c => c.code.startsWith("UNIVERSAL-") && !c.is_used);
+      setUniversalCode(latestUniversal?.code || null);
     }
     setLoading(false);
+  };
+
+  const generateUniversalCode = async () => {
+    setGeneratingUniversal(true);
+    const month = new Date().toLocaleString('default', { month: 'short' }).toUpperCase();
+    const year = new Date().getFullYear();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = `UNIVERSAL-${month}${year}-${random}`;
+    
+    const { error } = await supabase
+      .from("claim_codes")
+      .insert({
+        code,
+        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
+      });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate universal code",
+      });
+    } else {
+      setUniversalCode(code);
+      toast({
+        title: "Success!",
+        description: "Universal code generated and ready to copy",
+      });
+      loadClaimCodes();
+    }
+    setGeneratingUniversal(false);
   };
 
   const generateCodes = async () => {
@@ -176,6 +212,65 @@ const Admin = () => {
             </CardHeader>
           </Card>
         </div>
+
+        {/* Universal Monthly Code */}
+        <Card className="border-primary/50 bg-primary/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <CardTitle>Universal Monthly Code</CardTitle>
+            </div>
+            <CardDescription>
+              One code for all Etsy customers this month. Paste this into your PDF template.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {universalCode ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-4 bg-background rounded-lg border-2 border-primary">
+                  <code className="text-2xl font-bold text-primary flex-1">
+                    {universalCode}
+                  </code>
+                  <Button
+                    size="lg"
+                    onClick={() => copyToClipboard(universalCode)}
+                  >
+                    {copiedCode === universalCode ? (
+                      <>
+                        <Check className="w-5 h-5 mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-5 h-5 mr-2" />
+                        Copy Code
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={generateUniversalCode}
+                    disabled={generatingUniversal}
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate New Universal Code
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button 
+                size="lg"
+                onClick={generateUniversalCode}
+                disabled={generatingUniversal}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Universal Code
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Generate Codes */}
         <Card>
