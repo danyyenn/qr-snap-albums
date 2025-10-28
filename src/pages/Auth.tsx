@@ -29,6 +29,9 @@ const Auth = () => {
   const isResetMode = searchParams.get("mode") === "reset";
 
   useEffect(() => {
+    // Don't redirect if we're in password reset mode
+    if (isResetMode) return;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/dashboard");
@@ -36,13 +39,14 @@ const Auth = () => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
+      // Only redirect if not in reset mode
+      if (session && !isResetMode) {
         navigate("/dashboard");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, isResetMode]);
 
   const validateInputs = (isSignup: boolean) => {
     try {
