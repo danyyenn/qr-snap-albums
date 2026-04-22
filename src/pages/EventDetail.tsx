@@ -902,13 +902,16 @@ const EventDetail = () => {
     }
   };
 
-  const handleSettingChange = async (field: string, value: boolean) => {
+  const handleSettingChange = async (
+    field: "allow_guest_view" | "is_public_gallery" | "require_approval",
+    value: boolean
+  ) => {
     if (!event) return;
 
     try {
       const { error } = await supabase
         .from("events")
-        .update({ [field]: value })
+        .update({ [field]: value } as Record<typeof field, boolean>)
         .eq("id", event.id);
 
       if (error) throw error;
