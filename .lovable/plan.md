@@ -1,78 +1,46 @@
 
 
-# Plan: Prep Shotlist Build for Your New Lovable Account
+# Plan: Swap Shotlist Brand Pack to Use FlashNShare Colours
 
-You're closing this account in 5 days. I can't build directly on your Loyal Swift account, but I can use the credits here to create everything you need to **paste into your new project as one big kickoff prompt** — so the new Lovable agent builds Shotlist correctly first time without back-and-forth.
+Keep the Shotlist concept and structure, but swap the coral/cream palette for your existing FlashNShare purple/coral/teal colours so the new app feels familiar.
 
-## What I'll Produce (All as Downloadable Files)
+## What I'll Change
 
-Everything goes into `/mnt/documents/` so you can download and take it to the new account.
+**File 1 — `shotlist-brand-pack.md`** (rewrite the colour section only)
 
-### 1. `shotlist-master-prompt.md`
-The **single prompt** you paste into your new blank Loyal Swift project. It will include:
-- Product vision in one paragraph
-- Tech stack (React, Vite, Tailwind, Lovable Cloud)
-- Brand direction (name, colours, typography, tone)
-- Page-by-page feature spec
-- Database schema (tables, columns, relationships, RLS rules)
-- Build order (what to build first, second, third — so the agent doesn't try to do it all at once)
+Replace the coral/cream palette with FlashNShare's tokens (pulled from `src/index.css`):
 
-### 2. `shotlist-feature-spec.md`
-Full feature breakdown so you can refer back to it as you iterate:
-- Host flow (signup → create event → pick template → customise → get QR)
-- Guest flow (scan QR → see challenges → upload photo → mark complete)
-- Post-event flow (host reviews dump → hearts favourites → exports carousel/reel)
-- Moderation (host approves uploads before they show)
-- Etsy integration (claim codes, same model as FlashNShare)
+| Token | New HSL | Source |
+|---|---|---|
+| `--primary` | `280 70% 55%` | FlashNShare purple |
+| `--secondary` | `15 80% 65%` | FlashNShare coral |
+| `--accent` | `180 70% 55%` | FlashNShare teal |
+| `--gradient-primary` | `linear-gradient(135deg, hsl(280 70% 55%), hsl(15 80% 65%))` | Purple → coral |
+| `--gradient-accent` | `linear-gradient(135deg, hsl(280 70% 55%), hsl(180 70% 55%))` | Purple → teal |
+| `--shadow-elegant` | `0 10px 40px -10px hsl(280 70% 55% / 0.4)` | Purple glow |
+| Background | `0 0% 100%` light / `280 20% 8%` dark | FlashNShare neutrals |
 
-### 3. `shotlist-challenge-templates.md`
-**50+ ready-to-use photo challenges** across 6 event types (so the new build has real content from day one):
-- Wedding (15 challenges)
-- Hen/Stag Do (10)
-- Birthday (10)
-- Baby Shower (8)
-- Corporate Event (8)
-- Christmas Party (8)
+**Keep the same:**
+- Fonts (Fraunces display + Inter body) — these are new for Shotlist's premium feel
+- Imagery style guidance
+- Logo direction (just swap the suggested colour to purple `#B23AC9`)
+- Don't-do list (but remove the "no purple gradients" rule since we're embracing it)
 
-### 4. `shotlist-database-schema.sql`
-A clean SQL schema the new agent can use as a reference for the Lovable Cloud setup — events, challenges, uploads, profiles, claim codes, with proper RLS notes.
+**File 2 — `shotlist-master-prompt.md`** (update colour references only)
 
-### 5. `shotlist-etsy-products.md`
-Etsy product strategy: 5 printable bingo card products, pricing, descriptions, and how the QR-claim-code flow works.
+Find every place the master prompt mentions coral/cream tokens and swap to the FlashNShare purple/coral/teal values, so the new Lovable agent gets the right palette in the very first build.
 
-### 6. `shotlist-brand-pack.md`
-- 3 name options ranked (Shotlist / Snaplist / Reelist)
-- Colour palette (hex codes)
-- Tagline options
-- Voice & tone guide
+## What I Will NOT Touch
 
-## How You'll Use It
+- The 4 other files (challenges, feature spec, database schema, Etsy products) — none reference colours
+- Layout, fonts, name, taglines, or any other Shotlist branding
+- Anything in this current FlashNShare codebase
 
-```text
-1. Download all 6 files from this chat
-2. Open new blank project on Loyal Swift account
-3. Paste shotlist-master-prompt.md as your first message
-4. New Lovable builds Shotlist v1
-5. Reference the other 5 files as you iterate ("use challenges from challenge-templates.md")
-```
+## Output
+
+Both files re-written and saved to `/mnt/documents/` (overwriting the existing versions). You re-download those two files and use them with the other 4 unchanged ones.
 
 ## Credit Estimate
 
-Roughly **15–25 credits** total on this account — leaves you 75+ credits spare which you can use to keep iterating on this brainstorm or generate brand assets (logo, hero images) before the account closes.
-
-## What I Will NOT Do
-
-- Touch the broken `EventDetail.tsx` build error (you're abandoning this codebase)
-- Change anything in the live FlashNShare app
-- Try to migrate the database (Cloud data can't transfer between accounts anyway)
-
-## Optional Add-Ons (Say Yes/No)
-
-- **Generate a logo** for Shotlist using AI image gen (~5 credits)
-- **Generate hero/marketing images** for the new app (~10 credits)
-- **Brainstorm 50 MORE challenges** if 50 isn't enough
-
----
-
-**Reply "go" and I'll produce all 6 files in one shot.** Then you've got everything you need to walk into the new account and build Shotlist properly.
+~2 credits.
 
